@@ -28,5 +28,24 @@ assert 10 '- -10'
 assert 10 '- - +10'
 assert 27 '+ - 3 + ( 4 + 5) * 2 + -4 * - 3'
 
+# 1で真
+assert 0 '0==1'
+assert 1 '42==42'
+assert 1 '0!=1'
+assert 0 '42!=42'
+
+assert 1 '0<1'
+assert 0 '1<1'
+assert 0 '2<1'
+assert 1 '0<=1'
+assert 1 '1<=1'
+assert 0 '2<=1'
+
+assert 1 '1>0'
+assert 0 '1>1'
+assert 0 '1>2'
+assert 1 '1>=0'
+assert 1 '1>=1'
+assert 0 '1>=2'
 
 echo OK
