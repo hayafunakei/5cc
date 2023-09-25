@@ -4,6 +4,9 @@
 // パーサー
 //
 
+// 各行の先頭のノード
+Node *code[100];
+
 Node *new_node(NodeKind kind){
     Node *node = calloc(1, sizeof(Node));
     node->kind = kind;
@@ -25,7 +28,10 @@ Node *new_node_num(int val) {
     return node;
 }
 
+void program();
+Node *stmt();
 Node *expr();
+Node *assign();
 Node *equality();
 Node *relational();
 Node *add();
@@ -33,9 +39,35 @@ Node *mul();
 Node *unary();
 Node *primary();
 
-// expr = equality
+// program = stmt*
+void program() {
+    int i = 0;
+    while (!at_eof()){
+        code[i++] = stmt();
+    }
+    
+    return;
+}
+
+// stmt･･･ステートメント(1文)
+// stmt = expr ";"
+Node *stmt() {     
+    Node *node = expr();
+    expect(";"); // 必ず区切りとなる
+    return node;
+}
+
+// expr = assign
 Node *expr() {
-    return equality();
+    return assign();
+}
+
+// assign = equality ("=" assign)?
+Node*assign() {
+    Node *node = equality();
+    if (consume("="))
+        node = new_binary(ND_ASSIGN, node, assign());
+    return node;
 }
 
 // equality = relational ("==" relational | "!=" relational)*
@@ -108,12 +140,20 @@ Node *unary() {
     return primary();
 }
 
-// primary = "(" expr ")" | num
+// primary = "(" expr ")" | ident | num
 Node *primary() {
     // 次のトークンが"("なら、"(" expr ")"となるはず
     if (consume("(")) {
         Node *node = expr();
         expect(")");
+        return node;
+    }
+
+    // 変数
+    Token *tok = consume_ident();
+    if (tok) {
+        Node *node = new_node(ND_LVAR);
+        node->offset = (tok->str[0] - 'a' + 1) * 8;
         return node;
     }
 

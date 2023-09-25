@@ -8,9 +8,10 @@ int main(int argc, char **argv) {
     
     // トークナイズしてパースする
     user_input = argv[1];
-    token = tokenize(user_input);
-    Node *node = expr();
+    token = tokenize();
+    program();
     
-    codegen(node);
+    // コードを生成する
+    codegen();
     return 0;
 }
