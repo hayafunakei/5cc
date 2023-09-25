@@ -27,6 +27,15 @@ struct Token {
     int len;        // トークンの長さ
 };
 
+// ローカル変数の型
+typedef struct Var Var;
+struct Var {
+    Var *next; // 次の変数かNULL
+    char *name; // 変数の名前
+    int len;    // 名前の長さ
+    int offset; // RBPからのオフセット
+};
+
 void error(char *fmt, ...);
 void error_at(char *loc, char *fmt, ...);
 bool consume(char *op);
@@ -35,6 +44,7 @@ void expect(char *op);
 int expect_number();
 bool at_eof();
 Token *new_token(TokenKind kind, Token *cur, char *str, int len);
+Var *find_klvar(Token *tok);
 Token *tokenize();
 
 // 入力プログラム
@@ -57,7 +67,7 @@ typedef enum {
     ND_LT,     // <
     ND_LE,     // <=
     ND_ASSIGN, // = assign:代入する
-    ND_LVAR,   // ローカル変数
+    ND_VAR,    // 変数
     ND_NUM     // 整数
 } NodeKind;
 
@@ -65,17 +75,21 @@ typedef enum {
 typedef struct Node Node;
 struct Node {
     NodeKind kind; // ノードの型
-    Node *next;     // 次の行
+    Node *next;     // 次の行のスタートNode
     Node *lhs;     // 左辺
     Node *rhs;     // 右辺
-    int val;       //  KindがND_NUMの場合のみ使う
-    int offset;    // kindがND_LVARの場合のみ使う ベースポインタからのオフセット値
+    Var *var;      // kindがND_VARの場合のみ使う 当該変数への参照
+    int val;       // KindがND_NUMの場合のみ使う
 };
 
-// 各行の先頭のノード
-extern Node *code[100];
+// Nodeの全集合をまとめる。
+typedef struct {
+    Node *node;
+    Var *localValues;     
+    int stack_size;
+} Program;
 
-void program();
+Program *program();
 
 //
 // codegen.c

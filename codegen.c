@@ -4,14 +4,26 @@
 // コードジェネレータ
 //
 
-// 変数のアドレスをスタックにプッシュするコードを出力。
-void gen_lval(Node *node) {
-    if (node->kind != ND_LVAR)
-        error("代入の左辺値が変数ではありません");
-    
-    printf("  mov rax, rbp\n");
-    printf("  sub rax, %d\n", node->offset);
+// 指定されたノードのアドレスをスタックにプッシュする
+void gen_addr(Node *node) {
+    if (node->kind == ND_VAR) {
+        printf("  lea rax, [rbp-%d]\n", node->var->offset); // lea…srcの"アドレス(rbp-offset)"をdestに入れる
+        printf("  push rax\n");
+        return;
+    }
+}
+
+void load() {
+    printf("  pop rax\n"); // 変数アドレスを取得する
+    printf("  mov rax, [rax]\n"); // アドレスが指す箇所の数値を取り出す
     printf("  push rax\n");
+}
+
+void store() {
+    printf("  pop rdi\n");
+    printf("  pop rax\n");
+    printf("  mov [rax], rdi\n"); // raxのアドレス先に値をセットする
+    printf("  push rdi\n");
 }
 
 void gen(Node *node) {
@@ -19,20 +31,14 @@ void gen(Node *node) {
     case ND_NUM:
         printf("  push %d\n", node->val);
         return;
-    case ND_LVAR:
-        gen_lval(node); 
-        printf("  pop rax\n"); // 変数アドレスを取得する
-        printf("  mov rax, [rax]\n"); //アドレスから数値を取り出す
-        printf("  push rax\n");
+    case ND_VAR:
+        gen_addr(node);
+        load();
         return;
     case ND_ASSIGN:
-        gen_lval(node->lhs);
+        gen_addr(node->lhs);
         gen(node->rhs);
-
-        printf("  pop rdi\n");
-        printf("  pop rax\n");
-        printf("  mov [rax], rdi\n"); // raxのアドレス先に値をセットする
-        printf("  push rdi\n");
+        store();
         return;
     }
 
@@ -81,7 +87,7 @@ void gen(Node *node) {
     printf("  push rax\n");
 }
 
-void codegen() {
+void codegen(Program *prog) {
 
     // アセンブリの前半部分を出力
     printf(".intel_syntax noprefix\n");
@@ -89,16 +95,15 @@ void codegen() {
     printf("main:\n");
     
     // プロローグ
-    // 変数26個分の領域を確保する
-    // 変数は1つにつき64bit(8バイト)分までとする
+    // 変数分の領域を確保する
     printf("  push rbp\n");
     printf("  mov rbp, rsp\n");
-    printf("  sub rsp, 208\n"); // 26 * 8バイト rspを下げる 
+    printf("  sub rsp, %d\n", prog->stack_size); 
     
-    // 終端(NULL)まで繰り返す
-    for(int i; code[i]; i++) {
+    // 先頭のノードはprog->nodeを参照する
+    for(Node *node = prog->node; node; node = node->next) {
         // 抽象構文木を下りながらコード生成
-        gen(code[i]);
+        gen(node);
 
         // 式の評価結果としてスタックに一つの値が残っている
         // はずなので、スタックがあふれないようにポップしておく
@@ -106,7 +111,7 @@ void codegen() {
     }
 
     // エピローグ
-    // スタックトップにしき全体の値が残っているはずなので
+    // スタックトップに式全体の値が残っているはずなので
     // それをRAXにロードして関数からの返値とする
     printf("  mov rsp, rbp\n");
     printf("  pop rbp\n");

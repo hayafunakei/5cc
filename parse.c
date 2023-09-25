@@ -4,8 +4,15 @@
 // パーサー
 //
 
-// 各行の先頭のノード
-Node *code[100];
+Var *locals;
+
+// 変数を名前で検索する。見つからなかった場合はNULLを返す。
+Var *find_var(Token *tok) {
+    for (Var *var = locals; var; var = var->next)
+        if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
+            return var;
+    return NULL;
+}
 
 Node *new_node(NodeKind kind){
     Node *node = calloc(1, sizeof(Node));
@@ -28,7 +35,7 @@ Node *new_node_num(int val) {
     return node;
 }
 
-void program();
+Program *program();
 Node *stmt();
 Node *expr();
 Node *assign();
@@ -40,13 +47,22 @@ Node *unary();
 Node *primary();
 
 // program = stmt*
-void program() {
-    int i = 0;
+Program *program() {
+    locals = NULL;
+
+    Node head;
+    head.next = NULL;
+    Node *cur = &head;
+
     while (!at_eof()){
-        code[i++] = stmt();
+        cur->next = stmt();
+        cur = cur->next;
     }
     
-    return;
+    Program *prog = calloc(1, sizeof(program));
+    prog->node = head.next;
+    prog->localValues = locals;
+    return prog;
 }
 
 // stmt･･･ステートメント(1文)
@@ -152,8 +168,20 @@ Node *primary() {
     // 変数
     Token *tok = consume_ident();
     if (tok) {
-        Node *node = new_node(ND_LVAR);
-        node->offset = (tok->str[0] - 'a' + 1) * 8;
+        Node *node = new_node(ND_VAR);
+        
+        Var *lvar = find_var(tok);
+        if (lvar) {
+            node->var = lvar;
+        } else {
+            lvar = calloc(1, sizeof(Var));
+            lvar->next = locals;
+            lvar->name = tok->str;
+            lvar->len = tok->len;
+            node->var = lvar;
+            locals = lvar;
+        }
+       
         return node;
     }
 
