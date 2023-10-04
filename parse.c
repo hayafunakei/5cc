@@ -28,6 +28,12 @@ Node *new_binary(NodeKind kind, Node *lhs, Node *rhs) {
     return node;
 }
 
+Node *new_unary(NodeKind kind, Node *expr) {
+    Node *node = new_node(kind);
+    node->lhs = expr;
+    return node;
+}
+
 Node *new_node_num(int val) {
     Node *node = calloc(1, sizeof(Node));
     node->kind = ND_NUM;
@@ -66,11 +72,19 @@ Program *program() {
 }
 
 // stmt･･･ステートメント(1文)
-// stmt = expr ";"
+// stmt = "return" expr ";" | expr ";"  
 Node *stmt() {     
-    Node *node = expr();
-    expect(";"); // 必ず区切りとなる
-    return node;
+    Node *node;
+
+    if (consume("return")) {
+        node = new_unary(ND_RETURN, expr());
+        expect(";"); // 必ず区切りとなる
+        return node;
+    } else { 
+        node = expr();
+        expect(";"); // 必ず区切りとなる
+        return node;
+    }
 }
 
 // expr = assign

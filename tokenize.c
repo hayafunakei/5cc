@@ -112,6 +112,13 @@ Token *tokenize() {
             p++;
             continue;
         }
+        
+        // 
+        if (strncmp(p, "return", 6) == 0 && !is_alnum(p[6])) { //7文字目が"英数字_"でないなら"return"
+            cur = new_token(TK_RESERVED, cur, p, 6);
+            p += 6;
+            continue;
+        }
 
         // 複数文字の演算子
         if (startswitch(p, "==") || startswitch(p, "!=") ||
