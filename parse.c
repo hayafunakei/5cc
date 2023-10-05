@@ -71,20 +71,35 @@ Program *program() {
     return prog;
 }
 
-// stmt･･･ステートメント(1文)
-// stmt = "return" expr ";" | expr ";"  
-Node *stmt() {     
-    Node *node;
+Node *read_expr_stmt() {
+    return new_unary(ND_EXPR_STMT, expr());
+}
 
+// stmt･･･ステートメント(1文)
+// stmt = "return" expr ";" 
+//        | "if" "(" expr ")" stmt ("else" stmt)?
+//        | expr ";"  
+Node *stmt() {     
     if (consume("return")) {
-        node = new_unary(ND_RETURN, expr());
-        expect(";"); // 必ず区切りとなる
-        return node;
-    } else { 
-        node = expr();
-        expect(";"); // 必ず区切りとなる
+        Node *node = new_unary(ND_RETURN, expr()); // 必ずexpr以下となる。
+        expect(";"); 
         return node;
     }
+    
+    if (consume("if")) {
+        Node *node = new_node(ND_IF);
+        expect("(");
+        node->cond = expr();
+        expect(")");
+        node->then = stmt();
+        if (consume("else"))
+            node->els = stmt();
+        return node;
+    }
+    
+    Node *node = read_expr_stmt(); // 予約語がないはずの文,根元のノードをND_EXPR_STMTとする。
+    expect(";");
+    return node;
 }
 
 // expr = assign

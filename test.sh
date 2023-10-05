@@ -57,4 +57,11 @@ assert 101 'return foo=101;'
 assert 15 'return foo123=15;'
 
 assert 50 '2 + 2; 100; return 50; 200;'
+
+assert 3 'if (0) return 2; return 3;'
+assert 3 'if (1-1) return 2; return 3;'
+assert 2 'if (1) return 2; return 3;'
+assert 2 'if (2-1) return 2; return 3;'
+
+assert 5 '5 + if;'
 echo OK

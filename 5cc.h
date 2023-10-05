@@ -14,7 +14,6 @@ typedef enum {
     TK_RESERVED, // 記号
     TK_IDENT,    // 識別子
     TK_NUM,      // 整数トークン
-    TK_RETURN,   // return
     TK_EOF,      // 入力の終わりを表すトークン
 } TokenKind;
 
@@ -59,34 +58,42 @@ extern Token *token;
 
 // 抽象構文木のノードの種類
 typedef enum {
-    ND_ADD,    // +
-    ND_SUB,    // -
-    ND_MUL,    // *
-    ND_DIV,    // / 除算
-    ND_EQ,     // ==
-    ND_NE,     // !=
-    ND_LT,     // <
-    ND_LE,     // <=
-    ND_ASSIGN, // = assign:代入する
-    ND_RETURN, // "return"
-    ND_VAR,    // 変数
-    ND_NUM     // 整数
+    ND_ADD,       // +
+    ND_SUB,       // -
+    ND_MUL,       // *
+    ND_DIV,       // / 除算
+    ND_EQ,        // ==
+    ND_NE,        // !=
+    ND_LT,        // <
+    ND_LE,        // <=
+    ND_ASSIGN,    // = assign:代入する
+    ND_RETURN,    // "return"
+    ND_IF,        // "if"
+    ND_EXPR_STMT, // 式文
+    ND_VAR,       // 変数
+    ND_NUM        // 整数
 } NodeKind;
 
 // 抽象構文木のノードの型
 typedef struct Node Node;
 struct Node {
     NodeKind kind; // ノードの型
-    Node *next;     // 次の行のスタートNode
+    Node *next;    // 次の行のスタートNode
     Node *lhs;     // 左辺
     Node *rhs;     // 右辺
+    
+    // "if"ステートメント
+    Node *cond;    // condition:評価式
+    Node *then;  
+    Node *els;
+
     Var *var;      // kindがND_VARの場合のみ使う 当該変数への参照
     int val;       // KindがND_NUMの場合のみ使う
 };
 
 // Nodeの全集合をまとめる。
 typedef struct {
-    Node *node;
+    Node *node; // 一文目のNode
     Var *localValues;     
     int stack_size;
 } Program;
