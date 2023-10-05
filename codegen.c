@@ -9,7 +9,7 @@ int labelseq = 0; // ラベル連番
 // 指定されたノードのアドレスをスタックにプッシュする
 void gen_addr(Node *node) {
     if (node->kind == ND_VAR) {
-        printf("  lea rax, [rbp-%d]\n", node->var->offset); // lea…srcの"アドレス(rbp-offset)"をdestに入れる
+        printf("  lea rax, [rbp-%d]\n", node->var->offset); // lea…srcの"アドレス"(rbp-offset)をdest(rax)に入れる
         printf("  push rax\n");
         return;
     }
@@ -73,6 +73,17 @@ void gen(Node *node) {
         }
         return;
     }
+    case ND_WHILE:
+        int seq = labelseq++;
+        printf(".Lbegin%d:\n", seq);
+        gen(node->cond);
+        printf("  pop rax\n");
+        printf("  cmp rax, 0\n");
+        printf("  je  .Lend%d\n", seq);
+        gen(node->then);
+        printf("  jmp .Lbegin%d\n", seq);
+        printf(".Lend%d:\n", seq);
+        return;
     case ND_RETURN:
         gen(node->lhs);
         // スタックトップに式全体の値が残っているはずなので

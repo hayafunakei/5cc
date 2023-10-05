@@ -63,5 +63,6 @@ assert 3 'if (1-1) return 2; return 3;'
 assert 2 'if (1) return 2; return 3;'
 assert 2 'if (2-1) return 2; return 3;'
 
-assert 5 '5 + if;'
+assert 10 'i=0; while(i<10) i=i+1; return i;'
+assert 2 'f=0; while(f<=50)  f=f+f+1; if(f>60)return 2;return 3;'
 echo OK
