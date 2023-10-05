@@ -68,4 +68,9 @@ assert 2 'f=0; while(f<=50)  f=f+f+1; if(f>60)return 2;return 3;'
 
 assert 55 'i=0; j=0; for (i=0; i<=10; i=i+1) j=i+j; return j;'
 assert 3 'for (;;) return 3; return 5;'
+
+assert 3 '{1; {2;} return 3;}'
+assert 55 'i=0; j=0; while(i<=10) {j=i+j; i=i+1;} return j;'
+assert 15 'j=0; for (i=0; i<10; i=i+1){ j=3; if(i>5){j=10; i=i+1; if(i>8){j = 15; }}} return j;'
+
 echo OK

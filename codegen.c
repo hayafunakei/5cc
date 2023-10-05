@@ -53,7 +53,7 @@ void gen(Node *node) {
         if (node->els) { // elseあり
             gen(node->cond); // 実行時スタックに計算結果が残るはず
             printf("  pop rax\n");
-            printf("  cmp rax, 0\n"); // cmp 0(false)と比較 ZFにセット 同一:1　それ以外:0 
+            printf("  cmp rax, 0\n"); // cmp 0(false)か判定 ZFにセット 同一:1　それ以外:0 
             printf("  je  .Lelse%d\n", seq); // (ZF == 1)なら
             gen(node->then);
             printf("  jmp .Lend%d\n", seq);
@@ -103,6 +103,10 @@ void gen(Node *node) {
         printf(".Lend%d:\n", seq);
         return;
     }
+    case ND_BLOCK:
+        for (Node *n = node->body; n; n = n->next)
+            gen(n);
+        return;
     case ND_RETURN:
         gen(node->lhs);
         // スタックトップに式全体の値が残っているはずなので
@@ -172,7 +176,7 @@ void codegen(Program *prog) {
     
     // 先頭のノードはprog->nodeを参照する
     for(Node *node = prog->node; node; node = node->next) {
-        // 抽象構文木を下りながらコード生成
+        // 抽象構文木を下りながら一文ごとコード生成
         gen(node);
     }
 

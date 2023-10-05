@@ -66,7 +66,7 @@ Program *program() {
     }
     
     Program *prog = calloc(1, sizeof(program));
-    prog->node = head.next;
+    prog->node = head.next; // 一文目のポインタ
     prog->localValues = locals;
     return prog;
 }
@@ -80,6 +80,7 @@ Node *read_expr_stmt() {
 //        | "if" "(" expr ")" stmt ("else" stmt)?
 //        | "while" "(" expr ")" stmt
 //        | "for" "(" expr? ";" expr? ";" expr? ")" stmt
+//        | "{" stmt* "}"
 //        | expr ";"  
 Node *stmt() {     
     if (consume("return")) {
@@ -122,8 +123,23 @@ Node *stmt() {
         if (!consume(")")) {
             node->inc = read_expr_stmt();
             expect(")");
-        } else { /* 空文 */}
+        } else { /* 空文 */ }
         node->then = stmt();
+        return node;
+    }
+
+    if (consume("{")) {
+        Node head;
+        head.next = NULL;
+        Node *cur = &head;
+
+        while (!consume("}")) {
+            cur->next = stmt();
+            cur = cur->next;
+        }
+
+        Node *node = new_node(ND_BLOCK);
+        node->body = head.next;
         return node;
     }
     
