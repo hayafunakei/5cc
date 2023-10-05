@@ -79,6 +79,7 @@ Node *read_expr_stmt() {
 // stmt = "return" expr ";" 
 //        | "if" "(" expr ")" stmt ("else" stmt)?
 //        | "while" "(" expr ")" stmt
+//        | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 //        | expr ";"  
 Node *stmt() {     
     if (consume("return")) {
@@ -106,8 +107,27 @@ Node *stmt() {
             node->els = stmt();
         return node;
     }
+
+    if (consume("for")) {
+        Node *node = new_node(ND_FOR);
+        expect("(");
+        if (!consume(";")) {
+            node->init = read_expr_stmt();
+            expect(";");
+        } else { /* ";"の場合空文として次に移動する */ }
+        if (!consume(";")) {
+            node->cond = expr(); // 評価結果を残して判定に使うためexpr()_(read_ex~()ではなく)
+            expect(";");
+        } else { /*空文*/ }
+        if (!consume(")")) {
+            node->inc = read_expr_stmt();
+            expect(")");
+        } else { /* 空文 */}
+        node->then = stmt();
+        return node;
+    }
     
-    Node *node = read_expr_stmt(); // 予約語がないはずの文,根元のノードをND_EXPR_STMTとする。
+    Node *node = read_expr_stmt(); // 予約語がないはずの文,根元のノードをND_EXPR_STMTとする。評価結果は破棄される。
     expect(";");
     return node;
 }
