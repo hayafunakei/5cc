@@ -5,6 +5,7 @@
 //
 
 int labelseq = 0; // ラベル連番
+char *argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 
 // 指定されたノードのアドレスをスタックにプッシュする
 void gen_addr(Node *node) {
@@ -73,7 +74,7 @@ void gen(Node *node) {
         }
         return;
     }
-    case ND_WHILE:
+    case ND_WHILE: {
         int seq = labelseq++;
         printf(".Lbegin%d:\n", seq);
         gen(node->cond);
@@ -84,6 +85,7 @@ void gen(Node *node) {
         printf("  jmp .Lbegin%d\n", seq);
         printf(".Lend%d:\n", seq);
         return;
+    }
     case ND_FOR: {
         int seq = labelseq++;
         // init → cond → then → inc → then → ...
@@ -107,10 +109,36 @@ void gen(Node *node) {
         for (Node *n = node->body; n; n = n->next)
             gen(n);
         return;
-    case ND_FUNCALL:
+    case ND_FUNCALL: {
+        int nargs = 0;
+        for (Node *arg = node->args; arg; arg = arg->next) {
+            gen(arg);
+            nargs++;
+        }
+        
+        for (int i = nargs - 1; i >= 0; i--)
+            printf("  pop %s\n", argreg[i]);
+        
+        // x86-64 ABIの要件により
+        // 関数を呼び出す前にRSPを16バイトの倍数に合わせる必要がある
+        // x86-64では呼び出し時のRSPが16の倍数であることを前提にしている関数があるため
+        int seq = labelseq++;
+        printf("  mov rax, rsp\n");
+        printf("  and rax, 15\n"); // 下位4bitに1がある場合 16の倍数ではない
+        printf("  jnz .Lcall%d\n", seq); // jnz ZFが0でないなら飛ぶ
+        printf("  mov rax, 0\n"); // そのままでOK 
         printf("  call %s\n", node->funcname);
+        printf("  jmp .Lend%d\n", seq);
+        printf(".Lcall%d:\n", seq);
+        printf("  sub rsp, 8\n"); // 8バイトRSPを進めて、アドレスを16の倍数に揃える(RSPのスタックアドレスは8バイト単位のため決め打ちでOK)
+        printf("  mov rax, 0\n");
+        printf("  call %s\n", node->funcname);
+        printf("  add rsp, 8\n"); // 戻ってきた後、進めた分を戻す
+        printf(".Lend%d:\n", seq);
         printf("  push rax\n");
+
         return;
+    }
     case ND_RETURN:
         gen(node->lhs);
         // スタックトップに式全体の値が残っているはずなので

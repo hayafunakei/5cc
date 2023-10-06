@@ -9,7 +9,7 @@ Var *locals;
 // 変数を名前で検索する。見つからなかった場合はNULLを返す。
 Var *find_var(Token *tok) {
     for (Var *var = locals; var; var = var->next)
-        if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
+        if (strlen(var->name) == tok->len && !memcmp(tok->str, var->name, tok->len))
             return var;
     return NULL;
 }
@@ -41,16 +41,30 @@ Node *new_node_num(int val) {
     return node;
 }
 
+Node *new_var(Var *var) {
+    Node *node = new_node(ND_VAR);
+    node->var = var;
+    return node;
+}
+
+Var *push_var(char *name) {
+    Var *var = calloc(1, sizeof(Var));
+    var->next = locals;
+    var->name = name;
+    locals = var;
+    return var;
+}
+
 char *str_n_dup(const char *s, size_t n) {
     char *p;
-    size_t n1;
+    size_t dn;
 
-    for (n1 = 0; n1 < n && s[n1] != '\0'; n1++)
+    for (dn = 0; dn < n && s[dn] != '\0'; dn++)
         continue;
-    p = calloc(n1 + 1, sizeof(char));
+    p = calloc(dn + 1, sizeof(char));
     if (p != NULL) {
-        memcpy(p, s, n1);
-        p[n1] = '\0';
+        memcpy(p, s, dn);
+        p[dn] = '\0';
     }
     return p;
 }
@@ -246,8 +260,22 @@ Node *unary() {
     return primary();
 }
 
-// primary = "(" expr ")" | ident args? | num
-//  args = "(" ")"
+// func-args = "(" (assign ("," assign)*)? ")"
+Node *func_args() {
+    if (consume(")"))
+        return NULL;
+    
+    Node *head = assign();
+    Node *cur = head;
+    while (consume(",")) {
+        cur->next = assign();
+        cur = cur->next;
+    }
+    expect(")");
+    return head;
+}
+
+// primary = "(" expr ")" | ident func-args? | num
 Node *primary() {
     // 次のトークンが"("なら、"(" expr ")"となるはず
     if (consume("(")) {
@@ -261,27 +289,17 @@ Node *primary() {
     if (tok) {
         // 先に関数かチェック
         if (consume("(")) {
-            expect(")");
             Node *node = new_node(ND_FUNCALL);
             node->funcname = str_n_dup(tok->str, tok->len);
+            node->args = func_args(); // 末尾はfunc_argsでチェック
             return node;
         }
-        Node *node = new_node(ND_VAR);
         
-        // todo:push_var() new_var()を作る
-        Var *lvar = find_var(tok);
-        if (lvar) {
-            node->var = lvar;
-        } else {
-            lvar = calloc(1, sizeof(Var));
-            lvar->next = locals;
-            lvar->name = tok->str;
-            lvar->len = tok->len;
-            node->var = lvar;
-            locals = lvar;
-        }
+        Var *var = find_var(tok);
+        if (!var)
+            var = push_var(str_n_dup(tok->str, tok->len));
        
-        return node;
+        return new_var(var);
     }
 
     // そうでなければ数値のはず
