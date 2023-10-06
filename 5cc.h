@@ -72,6 +72,7 @@ typedef enum {
     ND_WHILE,     // "while"
     ND_FOR,       // "for"
     ND_BLOCK,     // { ... }
+    ND_FUNCALL,   // 関数call
     ND_EXPR_STMT, // 式文
     ND_VAR,       // 変数
     ND_NUM        // 整数
@@ -92,9 +93,12 @@ struct Node {
     Node *init;    // for初期化
     Node *inc;     // forインクリメント条件
 
-    //  Block
+    // Block
     Node *body;
 
+    // 関数call
+    char *funcname;
+    
     Var *var;      // kindがND_VARの場合のみ使う 当該変数への参照
     int val;       // KindがND_NUMの場合のみ使う
 };

@@ -66,7 +66,7 @@ void expect(char *op) {
 // それ以外の場合にはエラーを報告する。
 int expect_number() {
     if (token->kind != TK_NUM)
-        error_at(token->str, "数ではありません");
+        error_at(token->str, "ここで少なくとも数字となるべきです");
     int val = token->val;
     token = token->next;
     return val;

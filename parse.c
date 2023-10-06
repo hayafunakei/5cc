@@ -41,6 +41,20 @@ Node *new_node_num(int val) {
     return node;
 }
 
+char *str_n_dup(const char *s, size_t n) {
+    char *p;
+    size_t n1;
+
+    for (n1 = 0; n1 < n && s[n1] != '\0'; n1++)
+        continue;
+    p = calloc(n1 + 1, sizeof(char));
+    if (p != NULL) {
+        memcpy(p, s, n1);
+        p[n1] = '\0';
+    }
+    return p;
+}
+
 Program *program();
 Node *stmt();
 Node *expr();
@@ -134,7 +148,7 @@ Node *stmt() {
         Node *cur = &head;
 
         while (!consume("}")) {
-            cur->next = stmt();
+            cur->next = stmt(); // ブロック内の新しい一文
             cur = cur->next;
         }
 
@@ -143,7 +157,8 @@ Node *stmt() {
         return node;
     }
     
-    Node *node = read_expr_stmt(); // 予約語がないはずの文,根元のノードをND_EXPR_STMTとする。評価結果は破棄される。
+    // stmt ";" 予約語が含まれない文
+    Node *node = read_expr_stmt(); // 根元のノードをND_EXPR_STMTとする。評価結果は破棄される。
     expect(";");
     return node;
 }
@@ -231,7 +246,8 @@ Node *unary() {
     return primary();
 }
 
-// primary = "(" expr ")" | ident | num
+// primary = "(" expr ")" | ident args? | num
+//  args = "(" ")"
 Node *primary() {
     // 次のトークンが"("なら、"(" expr ")"となるはず
     if (consume("(")) {
@@ -240,11 +256,19 @@ Node *primary() {
         return node;
     }
 
-    // 変数
+    // 変数または関数　識別子
     Token *tok = consume_ident();
     if (tok) {
+        // 先に関数かチェック
+        if (consume("(")) {
+            expect(")");
+            Node *node = new_node(ND_FUNCALL);
+            node->funcname = str_n_dup(tok->str, tok->len);
+            return node;
+        }
         Node *node = new_node(ND_VAR);
         
+        // todo:push_var() new_var()を作る
         Var *lvar = find_var(tok);
         if (lvar) {
             node->var = lvar;

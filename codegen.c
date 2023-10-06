@@ -35,7 +35,7 @@ void gen(Node *node) {
         return;
     case ND_EXPR_STMT:
         gen(node->lhs);
-        // nodeの根本 returnではないためプッシュされたスタックトップ(計算結果)は破棄しておく。
+        // nodeの根本 returnではない文。プッシュされたスタックトップ(計算結果)は破棄しておく。
         // 破棄しないと、文が増えるほど使わないスタックが溜まってしまうため。
         printf("  add rsp, 8\n"); // RSPは1単位64bit(8バイト) 
         return;
@@ -106,6 +106,10 @@ void gen(Node *node) {
     case ND_BLOCK:
         for (Node *n = node->body; n; n = n->next)
             gen(n);
+        return;
+    case ND_FUNCALL:
+        printf("  call %s\n", node->funcname);
+        printf("  push rax\n");
         return;
     case ND_RETURN:
         gen(node->lhs);
