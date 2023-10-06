@@ -17,11 +17,8 @@ void error(char *fmt, ...) {
     exit(1);
 }
 
-// エラー箇所を報告する
-void error_at(char *loc, char *fmt, ...) {
-    va_list ap;
-    va_start(ap, fmt);
-
+// エラー個所を報告して終了する。
+void verror_at(char *loc, char *fmt, va_list ap) {
     int pos = loc - user_input;
     fprintf(stderr, "%s\n", user_input);
     fprintf(stderr, "%*s", pos, " "); // pos個の空白を入力
@@ -31,15 +28,49 @@ void error_at(char *loc, char *fmt, ...) {
     exit(1);
 }
 
-// 次のトークンが期待している記号(文字列)の時には、トークンを１つ読み進めて
-// 真を返す。それ以外の場合には偽を返す。
-bool consume(char *op) {
+// エラー箇所を報告して終了する。
+void error_at(char *loc, char *fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    verror_at(loc, fmt, ap);
+}
+
+// エラー個所を報告して終了する。
+void error_tok(Token *tok, char *fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    if (tok)
+        verror_at(tok->str, fmt, ap);
+    
+    vfprintf(stderr, fmt, ap);
+    fprintf(stderr, "\n");
+    exit(1);
+}
+
+char *str_n_dup(const char *s, size_t n) {
+    char *p;
+    size_t dn;
+
+    for (dn = 0; dn < n && s[dn] != '\0'; dn++)
+        continue;
+    p = malloc(dn + 1);
+    if (p != NULL) {
+        memcpy(p, s, dn);
+        p[dn] = '\0';
+    }
+    return p;
+}
+
+// 次のトークンが期待している記号(文字列)の時には、
+// トークンを返し、次のトークンに読み進める。 
+Token *consume(char *op) {
     if (token->kind != TK_RESERVED ||
           strlen(op) != token->len ||
           memcmp(token->str, op, token->len))
-        return false;
+        return NULL;
+    Token *t = token;
     token = token->next;
-    return true;
+    return t;
 }
 
 // 次のトークンが変数のときは、確認したTokenを返して、トークンを１つ読み進める。
@@ -58,7 +89,7 @@ void expect(char *op) {
     if (token->kind != TK_RESERVED ||
           strlen(op) != token->len ||
           memcmp(token->str, op, token->len))
-        error_at(token->str, "'%s'ではありません", op);
+        error_tok(token, "'%s'ではありません", op);
     token = token->next;
 }
 
@@ -66,10 +97,20 @@ void expect(char *op) {
 // それ以外の場合にはエラーを報告する。
 int expect_number() {
     if (token->kind != TK_NUM)
-        error_at(token->str, "ここで少なくとも数字となるべきです");
+        error_tok(token, "ここで少なくとも数字となるべきです");
     int val = token->val;
     token = token->next;
     return val;
+}
+
+// 次のトークンが識別子であることを確認します。トークンを１つ読み進めてその識別子を返す。
+// それ以外の場合はエラーを報告する。
+char *expect_ident() {
+    if (token->kind != TK_IDENT)
+        error_tok(token, "演算子ではありません");
+    char *s = str_n_dup(token->str, token->len);
+    token = token->next;
+    return s;
 }
 
 bool at_eof() {

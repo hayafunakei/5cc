@@ -14,6 +14,8 @@ void gen_addr(Node *node) {
         printf("  push rax\n");
         return;
     }
+
+    error_tok(node->tok, "変数ではありません");
 }
 
 void load() {
