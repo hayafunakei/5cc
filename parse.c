@@ -57,7 +57,7 @@ Var *push_var(char *name) {
 
 
 
-Program *program();
+Function *function();
 Node *stmt();
 Node *expr();
 Node *assign();
@@ -68,23 +68,42 @@ Node *mul();
 Node *unary();
 Node *primary();
 
-// program = stmt*
-Program *program() {
-    locals = NULL;
+// program = function*
+Function *program() {
+    Function head;
+    head.next = NULL;
+    Function *cur = &head;
+
+    while (!at_eof()){
+        cur->next = function();
+        cur = cur->next;
+    }
+    return head.next;
+}
+
+// function = ident "(" ")" "{" stmt* "}"
+Function *function() {
+    locals = NULL; // ここから一つのかたまり
+
+    char *name = expect_ident();
+    expect("(");
+    expect(")");
+    expect("{");
 
     Node head;
     head.next = NULL;
     Node *cur = &head;
 
-    while (!at_eof()){
+    while (!consume("}")) {
         cur->next = stmt();
         cur = cur->next;
     }
-    
-    Program *prog = calloc(1, sizeof(program));
-    prog->node = head.next; // 一文目のポインタ
-    prog->localValues = locals;
-    return prog;
+
+    Function *fn = calloc(1, sizeof(Function));
+    fn->name = name;
+    fn->node = head.next;
+    fn->locals = locals;
+    return fn;
 }
 
 Node *read_expr_stmt() {

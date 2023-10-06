@@ -43,6 +43,7 @@ Token *consume(char *op);
 Token *consume_ident();
 void expect(char *op);
 int expect_number();
+char *expect_ident();
 bool at_eof();
 Token *new_token(TokenKind kind, Token *cur, char *str, int len);
 Var *find_klvar(Token *tok);
@@ -108,17 +109,20 @@ struct Node {
     int val;       // KindがND_NUMの場合のみ使う
 };
 
-// Nodeの全集合をまとめる。
-typedef struct {
+// 関数１単位 
+typedef struct Function Function;
+struct Function {
+    Function *next;
+    char *name;
     Node *node; // 一文目のNode
-    Var *localValues;     
+    Var *locals;     
     int stack_size;
-} Program;
+}; 
 
-Program *program();
+Function *program();
 
 //
 // codegen.c
 //
 
-void codegen();
+void codegen(Function *prog);

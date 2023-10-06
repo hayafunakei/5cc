@@ -4,8 +4,10 @@
 // コードジェネレータ
 //
 
-int labelseq = 0; // ラベル連番
 char *argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+
+int labelseq = 0; // ラベル連番
+char *funcname;
 
 // 指定されたノードのアドレスをスタックにプッシュする
 void gen_addr(Node *node) {
@@ -146,7 +148,7 @@ void gen(Node *node) {
         // スタックトップに式全体の値が残っているはずなので
         // それをRAXにロードして関数からの返値とする
         printf("  pop rax\n");
-        printf("  jmp .Lreturn\n");
+        printf("  jmp .Lreturn.%s\n", funcname);
         return;
     }
 
@@ -195,30 +197,35 @@ void gen(Node *node) {
     printf("  push rax\n"); // 計算した結果がRAXに残るはずなのでpushする。
 }
 
-void codegen(Program *prog) {
+void codegen(Function *prog) {
 
     // アセンブリの前半部分を出力
     printf(".intel_syntax noprefix\n");
-    printf(".globl main\n");
-    printf("main:\n");
     
-    // プロローグ
-    printf("  push rbp\n");
-    printf("  mov rbp, rsp\n");
-    // 変数分の領域を確保する
-    printf("  sub rsp, %d\n", prog->stack_size); 
-    
-    // 先頭のノードはprog->nodeを参照する
-    for(Node *node = prog->node; node; node = node->next) {
-        // 抽象構文木を下りながら一文ごとコード生成
-        gen(node);
+    for (Function *fn = prog; fn; fn = fn->next) {
+        printf(".globl %s\n", fn->name);
+        printf("%s:\n", fn->name);
+        funcname = fn->name;
+
+        // プロローグ
+        printf("  push rbp\n");
+        printf("  mov rbp, rsp\n");
+        // 変数分の領域を確保する
+        printf("  sub rsp, %d\n", fn->stack_size); 
+
+        // 先頭のノードはprog->nodeを参照する
+        for(Node *node = fn->node; node; node = node->next) {
+            // 抽象構文木を下りながら一文ごとコード生成
+            gen(node);
+        }
+
+        // エピローグ
+        printf(".Lreturn.%s:\n", funcname);
+        printf("  mov rsp, rbp\n");
+        printf("  pop rbp\n"); // RBPを呼び出し元RBPアドレスに戻す。popすることでRSPはリターンアドレスを指す。
+        printf("  ret\n"); // RSPが指すアドレスに戻る（呼び出し元アドレス）
     }
 
-    // エピローグ
-    printf(".Lreturn:\n");
-    printf("  mov rsp, rbp\n");
-    printf("  pop rbp\n"); // RBPを呼び出し元RBPアドレスに戻す。popすることでRSPはリターンアドレスを指す。
-    printf("  ret\n"); // RSPが指すアドレスに戻る（呼び出し元アドレス）
     return;
 }
 
