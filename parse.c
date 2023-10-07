@@ -4,13 +4,15 @@
 // パーサー
 //
 
-Var *locals;
+VarList *locals;
 
 // 変数を名前で検索する。見つからなかった場合はNULLを返す。
 Var *find_var(Token *tok) {
-    for (Var *var = locals; var; var = var->next)
+    for (VarList *vl = locals; vl; vl = vl->next) {
+        Var *var = vl->var;
         if (strlen(var->name) == tok->len && !memcmp(tok->str, var->name, tok->len))
             return var;
+    }
     return NULL;
 }
 
@@ -49,13 +51,14 @@ Node *new_var(Var *var, Token *tok) {
 
 Var *push_var(char *name) {
     Var *var = calloc(1, sizeof(Var));
-    var->next = locals;
     var->name = name;
-    locals = var;
+    
+    VarList *vl = calloc(1, sizeof(VarList));
+    vl->var = var;
+    vl->next = locals;
+    locals = vl;
     return var;
 }
-
-
 
 Function *function();
 Node *stmt();
@@ -81,13 +84,35 @@ Function *program() {
     return head.next;
 }
 
-// function = ident "(" ")" "{" stmt* "}"
+VarList *read_func_params() {
+    if (consume(")"))
+        return NULL;
+    
+    // 一つ以上引数がある
+    VarList *head = calloc(1, sizeof(VarList));
+    head->var = push_var(expect_ident());
+    VarList *cur = head;
+
+    while (!consume(")")) {
+        expect(",");
+        cur->next = calloc(1, sizeof(VarList));
+        cur->next->var = push_var(expect_ident());
+        cur = cur->next;
+    }
+
+    return head;
+}
+
+
+// function = ident "(" params? ")" "{" stmt* "}"
+// params   = ident ("," ident)*
 Function *function() {
     locals = NULL; // ここから一つのかたまり
+    Function *fn = calloc(1, sizeof(Function));
+    fn->name = expect_ident();
 
-    char *name = expect_ident();
     expect("(");
-    expect(")");
+    fn->params = read_func_params();
     expect("{");
 
     Node head;
@@ -99,8 +124,6 @@ Function *function() {
         cur = cur->next;
     }
 
-    Function *fn = calloc(1, sizeof(Function));
-    fn->name = name;
     fn->node = head.next;
     fn->locals = locals;
     return fn;

@@ -27,14 +27,6 @@ struct Token {
     int len;        // トークンの長さ
 };
 
-// ローカル変数の型
-typedef struct Var Var;
-struct Var {
-    Var *next; // 次の変数かNULL
-    char *name; // 変数の名前
-    int len;    // 名前の長さ
-    int offset; // RBPからのオフセット
-};
 
 void error(char *fmt, ...);
 void error_at(char *loc, char *fmt, ...);
@@ -46,7 +38,6 @@ int expect_number();
 char *expect_ident();
 bool at_eof();
 Token *new_token(TokenKind kind, Token *cur, char *str, int len);
-Var *find_klvar(Token *tok);
 Token *tokenize();
 char *str_n_dup(const char *s, size_t n);
 
@@ -58,6 +49,19 @@ extern Token *token;
 //
 // parse.c
 //
+
+// ローカル変数の型
+typedef struct Var Var;
+struct Var {
+    char *name; // 変数の名前
+    int offset; // RBPからのオフセット
+};
+
+typedef struct VarList VarList;
+struct VarList {
+    VarList *next;
+    Var *var;
+};
 
 // 抽象構文木のノードの種類
 typedef enum {
@@ -114,8 +118,10 @@ typedef struct Function Function;
 struct Function {
     Function *next;
     char *name;
+    VarList *params;
+
     Node *node; // 一文目のNode
-    Var *locals;     
+    VarList *locals;     
     int stack_size;
 }; 
 
