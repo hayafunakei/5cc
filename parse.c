@@ -287,7 +287,7 @@ Node *mul() {
     }
 }
 
-// unary = ("+" | "-")? unary | primary 
+// unary = ("+" | "-" | "&" | "*")? unary | primary 
 Node *unary() {
     Token *tok;
     if (consume("+"))
@@ -295,6 +295,10 @@ Node *unary() {
     if (tok = consume("-"))
         // 0と右ノードを引き算してマイナスにする。
         return new_binary(ND_SUB, new_node_num(0, tok), unary(), tok);
+    if (tok = consume("&"))
+        return new_unary(ND_ADDR, unary(), tok);
+    if (tok = consume("*"))
+        return new_unary(ND_DEREF, unary(), tok);
     return primary();
 }
 

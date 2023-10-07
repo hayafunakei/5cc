@@ -73,6 +73,8 @@ typedef enum {
     ND_NE,        // !=
     ND_LT,        // <
     ND_LE,        // <=
+    ND_ADDR,      // unary &
+    ND_DEREF,     // unary *
     ND_ASSIGN,    // = assign:代入する
     ND_RETURN,    // "return"
     ND_IF,        // "if"

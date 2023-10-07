@@ -9,18 +9,24 @@ char *argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 int labelseq = 0; // ラベル連番
 char *funcname;
 
+void gen(Node *node);
+
 // 指定されたノードのアドレスをスタックにプッシュする
 void gen_addr(Node *node) {
-    if (node->kind == ND_VAR) {
+    switch (node->kind) {
+    case ND_VAR:
         printf("  lea rax, [rbp-%d]\n", node->var->offset); // lea…srcの"アドレス"(rbp-offset)をdest(rax)に入れる
         printf("  push rax\n");
+        return;
+    case ND_DEREF:
+        gen(node->lhs);
         return;
     }
 
     error_tok(node->tok, "変数ではありません");
 }
 
-void load() {
+void load() { // アドレスをpushしておく
     printf("  pop rax\n"); // 変数アドレスを取得する
     printf("  mov rax, [rax]\n"); // アドレスが指す箇所の数値を取り出す
     printf("  push rax\n");
@@ -52,6 +58,13 @@ void gen(Node *node) {
         gen_addr(node->lhs);
         gen(node->rhs);
         store();
+        return;
+    case ND_ADDR: // &
+        gen_addr(node->lhs); // スタックにアドレスが残る
+        return;
+    case ND_DEREF: // *
+        gen(node->lhs);
+        load(); // lhsの結果をアドレスとして読み込む
         return;
     case ND_IF: {
         int seq = labelseq++;
