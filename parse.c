@@ -290,7 +290,7 @@ Node *mul() {
 // unary = ("+" | "-" | "&" | "*")? unary | primary 
 Node *unary() {
     Token *tok;
-    if (consume("+"))
+    if (consume("+")) // +(正の値) そのまま読み進める
         return unary();
     if (tok = consume("-"))
         // 0と右ノードを引き算してマイナスにする。
