@@ -33,6 +33,7 @@ struct Token {
 void error(char *fmt, ...);
 void error_at(char *loc, char *fmt, ...);
 void error_tok(Token *tok, char *fmt, ...);
+Token *peek(char *s);
 Token *consume(char *op);
 Token *consume_ident();
 void expect(char *op);
@@ -56,6 +57,7 @@ extern Token *token;
 typedef struct Var Var;
 struct Var {
     char *name; // 変数の名前
+    Type *ty;   // 型
     int offset; // RBPからのオフセット
 };
 
@@ -86,7 +88,8 @@ typedef enum {
     ND_FUNCALL,   // 関数call
     ND_EXPR_STMT, // 式文
     ND_VAR,       // 変数
-    ND_NUM        // 整数
+    ND_NUM,       // 整数
+    ND_NULL,      // 空の文
 } NodeKind;
 
 // 抽象構文木のノードの型
@@ -143,6 +146,9 @@ struct Type {
     TypeKind kind;   // 変数の型
     Type *base;      // ポインタ型で使う　何のポインタ型か
 };
+
+Type *int_type();
+Type *pointer_to(Type *base);
 
 void add_type(Function *prog);
 

@@ -40,9 +40,11 @@ void visit(Node *node) {
     case ND_LT:
     case ND_LE:
     case ND_FUNCALL:
-    case ND_VAR:
     case ND_NUM:
         node->ty = int_type();
+        return;
+    case ND_VAR:
+        node->ty = node->var->ty;
         return;
     case ND_ADD:
         if (node->rhs->ty->kind == TY_PTR) { // rhsがポインタ型のとき、左右を入れ替えて通ればOK　
@@ -51,12 +53,12 @@ void visit(Node *node) {
             node->rhs = tmp;
         }
         if (node->rhs->ty->kind == TY_PTR)
-            error_tok(node->tok, "無効なポインタ演算子"); // &(lhs) + &(rhs)をすることは無い。
+            error_tok(node->tok, "無効なポインタ演算子 アドレス同士の加算は禁止です"); 
         node->ty = node->lhs->ty;
         return;
     case ND_SUB:
         if (node->rhs->ty->kind == TY_PTR)
-            error_tok(node->tok, "無効なポインタ演算子");  // lhs - &(rhs)をすることは無い。
+            error_tok(node->tok, "無効なポインタ演算子 アドレスで減算することは禁止です");
         node->ty = node->lhs->ty;
         return;
     case ND_ASSIGN:
@@ -66,10 +68,9 @@ void visit(Node *node) {
         node->ty = pointer_to(node->lhs->ty); // lhsノードのポインタ型を設定する。
         return;                               // 例:int型であればこのノードはint型ポインタになる。
     case ND_DEREF: // *
-        if (node->lhs->ty->kind == TY_PTR)    // *&(lhs)
-            node->ty = node->lhs->ty->base;   // lhsのポインタ型を引き継ぐ 
-        else
-            node->ty = int_type(); // ポインタの参照先の値(の型)
+        if (node->lhs->ty->kind != TY_PTR) 
+            error_tok(node->tok, "無効なポインタ参照 ポインタ型ではありません");
+        node->ty = node->lhs->ty->base;   // lhsのポインタ型を引き継ぐ 
         return;
     }
 
