@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -139,16 +140,19 @@ Function *program();
 // type.c
 //
 
-typedef enum { TY_INT, TY_PTR } TypeKind;
+typedef enum { TY_INT, TY_PTR, TY_ARRAY } TypeKind;
 
 // 型の性質を表す
 struct Type {
     TypeKind kind;   // 変数の型
     Type *base;      // ポインタ型で使う　何のポインタ型か
+    int array_size; 
 };
 
 Type *int_type();
 Type *pointer_to(Type *base);
+Type *array_of(Type *base, int size);
+int size_of(Type *ty);
 
 void add_type(Function *prog);
 

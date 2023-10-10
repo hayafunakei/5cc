@@ -26,6 +26,12 @@ void gen_addr(Node *node) {
     error_tok(node->tok, "変数ではありません");
 }
 
+void gen_lval(Node *node) {
+    if (node->ty->kind == TY_ARRAY)
+        error_tok(node->tok, "lvalueではありません");
+    gen_addr(node);
+}
+
 void load() { // アドレスをpushしておく
     printf("  pop rax\n"); // 変数アドレスを取得する
     printf("  mov rax, [rax]\n"); // アドレスが指す箇所の数値を取り出す
@@ -54,19 +60,21 @@ void gen(Node *node) {
         return;
     case ND_VAR:
         gen_addr(node);
-        load();
+        if (node->ty->kind != TY_ARRAY)
+            load();
         return;
     case ND_ASSIGN:
-        gen_addr(node->lhs);
+        gen_lval(node->lhs);
         gen(node->rhs);
         store();
-        return;
+        return;  
     case ND_ADDR: // &
         gen_addr(node->lhs); // スタックにアドレスが残る
         return;
     case ND_DEREF: // *
         gen(node->lhs);
-        load(); // lhsの結果をアドレスとして読み込む
+        if (node->ty->kind != TY_ARRAY)
+            load(); // lhsの結果をアドレスとして読み込む
         return;
     case ND_IF: {
         int seq = labelseq++;
@@ -149,7 +157,8 @@ void gen(Node *node) {
         printf("  call %s\n", node->funcname);
         printf("  jmp .Lend%d\n", seq);
         printf(".Lcall%d:\n", seq);
-        printf("  sub rsp, 8\n"); // 8バイトRSPを進めて、アドレスを16の倍数に揃える(RSPのスタックアドレスは8バイト単位のため決め打ちでOK)
+        printf("  sub rsp, 8\n"); // 8バイトRSPを進めて、アドレスを16の倍数に揃える(RSPのスタックアドレスは8バイト単位,
+                                  // **8バイトより小さい型を追加するときは要修正**  変数は8バイト固定としているため決め打ちで良い)
         printf("  mov rax, 0\n");
         printf("  call %s\n", node->funcname);
         printf("  add rsp, 8\n"); // 戻ってきた後、進めた分を戻す
@@ -175,13 +184,13 @@ void gen(Node *node) {
 
     switch (node->kind) {
     case ND_ADD:
-        if (node->ty->kind == TY_PTR)
-            printf("  imul rdi, 8\n");
+        if (node->ty->base)
+            printf("  imul rdi, %d\n", size_of(node->ty->base));
         printf("  add rax, rdi\n");
         break;
     case ND_SUB:
-        if (node->ty->kind == TY_PTR)
-            printf("  imul rdi, 8\n");
+        if (node->ty->base)
+            printf("  imul rdi, %d\n", size_of(node->ty->base));
         printf("  sub rax, rdi\n");
         break;
     case ND_MUL:

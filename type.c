@@ -13,6 +13,21 @@ Type *pointer_to(Type *base) {
     return ty;
 }
 
+Type *array_of(Type *base, int size) {
+    Type *ty = calloc(1, sizeof(Type));
+    ty->kind = TY_ARRAY;
+    ty->base = base;
+    ty->array_size = size;
+    return;
+}
+
+int size_of(Type *ty) {
+    if (ty->kind == TY_INT || ty->kind == TY_PTR)
+        return 8;
+    assert(ty->kind == TY_ARRAY);
+    return size_of(ty->base) * ty->array_size;
+}
+
 void visit(Node *node) {
     if (!node)
         return;
@@ -47,17 +62,17 @@ void visit(Node *node) {
         node->ty = node->var->ty;
         return;
     case ND_ADD:
-        if (node->rhs->ty->kind == TY_PTR) { // rhsがポインタ型のとき、左右を入れ替えて通ればOK　
+        if (node->rhs->ty->base) { // rhsがポインタ型のとき、左右を入れ替えて通ればOK　
             Node *tmp = node->lhs;           // 入れ替えても足し算なので結果は変わらない
             node->lhs = node->rhs;
             node->rhs = tmp;
         }
-        if (node->rhs->ty->kind == TY_PTR)
+        if (node->rhs->ty->base)
             error_tok(node->tok, "無効なポインタ演算子 アドレス同士の加算は禁止です"); 
         node->ty = node->lhs->ty;
         return;
     case ND_SUB:
-        if (node->rhs->ty->kind == TY_PTR)
+        if (node->rhs->ty->base)
             error_tok(node->tok, "無効なポインタ演算子 アドレスで減算することは禁止です");
         node->ty = node->lhs->ty;
         return;
@@ -65,10 +80,14 @@ void visit(Node *node) {
         node->ty = node->lhs->ty;
         return;
     case ND_ADDR: // &
-        node->ty = pointer_to(node->lhs->ty); // lhsノードのポインタ型を設定する。
-        return;                               // 例:int型であればこのノードはint型ポインタになる。
+        if (node->lhs->ty->kind == TY_ARRAY) {           // lhsノードのポインタ型を設定する。
+            node->ty = pointer_to(node->lhs->ty->base);  // 例:int型であればこのノードはint型ポインタになる。
+        } else {
+            node->ty = pointer_to(node->lhs->ty); 
+        }                                         
+        return;
     case ND_DEREF: // *
-        if (node->lhs->ty->kind != TY_PTR) 
+        if (!node->lhs->ty->base) 
             error_tok(node->tok, "無効なポインタ参照 ポインタ型ではありません");
         node->ty = node->lhs->ty->base;   // lhsのポインタ型を引き継ぐ 
         return;
