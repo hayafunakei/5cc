@@ -71,6 +71,7 @@ Node *relational();
 Node *add();
 Node *mul();
 Node *unary();
+Node *postfix();
 Node *primary();
 
 // program = function*
@@ -165,8 +166,8 @@ Node *declaration() {
     Type *ty = basetype();
     char *name = expect_ident();
     
-    // []
-    ty = read_type_suffix(ty);
+    // 配列定義[]
+    ty = read_type_suffix(ty); // 配列ならbaseの配列タイプになる。
     Var *var = push_var(name, ty);
 
     if (consume(";"))
@@ -342,7 +343,8 @@ Node *mul() {
     }
 }
 
-// unary = ("+" | "-" | "&" | "*")? unary | primary 
+// unary = ("+" | "-" | "&" | "*")? unary 
+//       | postfix 
 Node *unary() {
     Token *tok;
     if (consume("+")) // +(正の値) そのまま読み進める
@@ -354,7 +356,21 @@ Node *unary() {
         return new_unary(ND_ADDR, unary(), tok);
     if (tok = consume("*"))
         return new_unary(ND_DEREF, unary(), tok);
-    return primary();
+    return postfix();
+}
+
+// postfix = primary ("[" expr "]")*
+Node *postfix() {
+    Node *node = primary();
+    Token *tok;
+
+    while (tok = consume("[")) {
+        // x[y] は *(x+y) の意味
+        Node *exp = new_binary(ND_ADD, node, expr(), tok);
+        expect("]");
+        node = new_unary(ND_DEREF, exp, tok);
+    }
+    return node;
 }
 
 // func-args = "(" (assign ("," assign)*)? ")"

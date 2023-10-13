@@ -18,7 +18,7 @@ Type *array_of(Type *base, int size) {
     ty->kind = TY_ARRAY;
     ty->base = base;
     ty->array_size = size;
-    return;
+    return ty;
 }
 
 int size_of(Type *ty) {

@@ -140,7 +140,11 @@ Function *program();
 // type.c
 //
 
-typedef enum { TY_INT, TY_PTR, TY_ARRAY } TypeKind;
+typedef enum { 
+    TY_INT, 
+    TY_PTR, 
+    TY_ARRAY 
+} TypeKind;
 
 // 型の性質を表す
 struct Type {
