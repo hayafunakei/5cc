@@ -388,8 +388,13 @@ Node *func_args() {
     return head;
 }
 
-// primary = "(" expr ")" | ident func-args? | num
+// primary = "(" expr ")" 
+//            | ident func-args? 
+//            | "sieof" unary
+//            | num
 Node *primary() {
+    Token *tok;
+
     // 次のトークンが"("なら、"(" expr ")"となるはず
     if (consume("(")) {
         Node *node = expr();
@@ -397,7 +402,9 @@ Node *primary() {
         return node;
     }
 
-    Token *tok;
+    if (tok = consume("sizeof"))
+        return new_unary(ND_SIZEOF, unary(), tok);
+    
     // 変数または関数　識別子
     if (tok = consume_ident()) {
         // 先に関数かチェック

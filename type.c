@@ -91,7 +91,14 @@ void visit(Node *node) {
             error_tok(node->tok, "無効なポインタ参照 ポインタ型ではありません");
         node->ty = node->lhs->ty->base;   // lhsのポインタ型を引き継ぐ 
         return;
+    case ND_SIZEOF:
+        node->kind = ND_NUM;
+        node->ty = int_type();
+        node->val = size_of(node->lhs->ty);
+        node->lhs = NULL;
+        return;
     }
+     
 
 }
 
