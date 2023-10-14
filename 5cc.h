@@ -54,12 +54,15 @@ extern Token *token;
 // parse.c
 //
 
-// ローカル変数の型
+// 変数の型
 typedef struct Var Var;
 struct Var {
-    char *name; // 変数の名前
-    Type *ty;   // 型
-    int offset; // RBPからのオフセット
+    char *name;    // 変数の名前
+    Type *ty;      // 型
+    bool is_local; // ローカルかグローバル
+    
+    // ローカル変数
+    int offset;   // RBPからのオフセット
 };
 
 typedef struct VarList VarList;
@@ -135,7 +138,12 @@ struct Function {
     int stack_size;
 }; 
 
-Function *program();
+typedef struct {
+    VarList *globals;
+    Function *fns;
+} Program;
+
+Program *program();
 
 //
 // type.c
@@ -159,10 +167,10 @@ Type *pointer_to(Type *base);
 Type *array_of(Type *base, int size);
 int size_of(Type *ty);
 
-void add_type(Function *prog);
+void add_type(Program *prog);
 
 //
 // codegen.c
 //
 
-void codegen(Function *prog);
+void codegen(Program *prog);

@@ -14,10 +14,16 @@ void gen(Node *node);
 // 指定されたノードのアドレスをスタックにプッシュする
 void gen_addr(Node *node) {
     switch (node->kind) {
-    case ND_VAR:
-        printf("  lea rax, [rbp-%d]\n", node->var->offset); // lea…srcの"アドレス"(rbp-offset)をdest(rax)に入れる
-        printf("  push rax\n");
+    case ND_VAR: {
+        Var *var = node->var;
+        if (var->is_local) {
+            printf("  lea rax, [rbp-%d]\n", var->offset); // lea…srcの"アドレス"(rbp-offset)をdest(rax)に入れる
+            printf("  push rax\n");
+        } else {
+            printf("  push offset %s\n", var->name);
+        }
         return;
+    }
     case ND_DEREF:
         gen(node->lhs);
         return;
@@ -225,12 +231,20 @@ void gen(Node *node) {
     printf("  push rax\n"); // 計算した結果がRAXに残るはずなのでpushする。
 }
 
-void codegen(Function *prog) {
+void emit_data(Program *prog) {
+    printf(".data\n"); // データセクション グローバル変数や文字リテラルなど
 
-    // アセンブリの前半部分を出力
-    printf(".intel_syntax noprefix\n");
+    for (VarList *vl = prog->globals; vl; vl = vl->next) {
+        Var *var = vl->var;
+        printf("%s:\n", var->name);
+        printf("  .zero %d\n", size_of(var->ty)); // サイズ数バイト宣言し、0で埋める
+    }
+}
+
+void emit_text(Program *prog) {
+    printf(".text\n");
     
-    for (Function *fn = prog; fn; fn = fn->next) {
+    for (Function *fn = prog->fns; fn; fn = fn->next) {
         printf(".globl %s\n", fn->name);
         printf("%s:\n", fn->name);
         funcname = fn->name;
@@ -259,8 +273,11 @@ void codegen(Function *prog) {
         printf("  pop rbp\n"); // RBPを呼び出し元RBPアドレスに戻す。popすることでRSPはリターンアドレスを指す。
         printf("  ret\n"); // RSPが指すアドレスに戻る（呼び出し元アドレス）
     }
-
-    return;
 }
 
+void codegen(Program *prog) {
+    printf(".intel_syntax noprefix\n");
+    emit_data(prog);
+    emit_text(prog);
+}
 // rdi 第一引数 rsi, rdx, rcx

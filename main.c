@@ -9,10 +9,10 @@ int main(int argc, char **argv) {
     // トークナイズしてパースする
     user_input = argv[1];
     token = tokenize();
-    Function *prog = program();
+    Program *prog = program();
     add_type(prog);
     
-    for (Function *fn = prog; fn; fn = fn->next) {
+    for (Function *fn = prog->fns; fn; fn = fn->next) {
         // ローカル変数のオフセット値を設定する。
         //　一つあたりの領域はsize_ofで型サイズを確認して個別に求める。
         int offset = 0;

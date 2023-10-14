@@ -73,7 +73,7 @@ void visit(Node *node) {
         return;
     case ND_SUB:
         if (node->rhs->ty->base)
-            error_tok(node->tok, "無効なポインタ演算子 アドレスで減算することは禁止です");
+            error_tok(node->tok, "無効なポインタ演算子 アドレスで減算することは禁止です。右辺はarithmetic typeである必要があります。");
         node->ty = node->lhs->ty;
         return;
     case ND_ASSIGN:
@@ -102,8 +102,8 @@ void visit(Node *node) {
 
 }
 
-void add_type(Function *prog) {
-    for (Function *fn = prog; fn; fn = fn->next)
+void add_type(Program *prog) {
+    for (Function *fn = prog->fns; fn; fn = fn->next)
         for (Node *node = fn->node; node; node = node->next)
             visit(node);
 }
