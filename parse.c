@@ -121,10 +121,16 @@ Program *program() {
     return prog;
 }
 
-// basetype = "int" "*"*
+// basetype = ("char" | "int") "*"*
 Type *basetype() {
-    expect("int");
-    Type *ty = int_type();
+    Type *ty;
+     if (consume("char")) {
+        ty = char_type();
+     } else {
+        expect("int");
+        ty = int_type();
+     }
+     
     while (consume("*"))
         ty = pointer_to(ty);
     return ty;
@@ -224,6 +230,10 @@ Node *declaration() {
     return new_unary(ND_EXPR_STMT, node, tok);
 }
 
+bool is_typename() {
+    return peek("char") || peek("int");
+}
+
 Node *read_expr_stmt() {
     Token *tok = token;
     return new_unary(ND_EXPR_STMT, expr(), tok);
@@ -299,7 +309,7 @@ Node *stmt() {
         return node;
     }
 
-    if (tok = peek("int"))
+    if (is_typename())
         return declaration();
     
     // stmt ";" 予約語が含まれない文

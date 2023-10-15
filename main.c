@@ -1,5 +1,13 @@
 #include "5cc.h"
 
+// alignで指定したサイズの倍数に切り上げて整列します
+int align_to(int n, int align) {
+    // 例:n=90, align=8
+    // (90 + 7)=97(0110 0001)で次にあるalignの倍数以上の数にする。
+    // NOT 7(1111 1000)のANDをとり、align以下のビットを0にするとalignの倍数となる→96
+    return (n + align -1) & ~(align - 1);
+}
+
 int main(int argc, char **argv) {
     if (argc != 2) {
         fprintf(stderr, "引数の個数が正しくありません\n");
@@ -21,7 +29,7 @@ int main(int argc, char **argv) {
             offset += size_of(var->ty);
             var->offset = offset;
         }
-        fn->stack_size = offset;
+        fn->stack_size = align_to(offset, 8);
 
     }
 
