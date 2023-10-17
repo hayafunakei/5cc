@@ -111,7 +111,7 @@ int expect_number() {
 // それ以外の場合はエラーを報告する。
 char *expect_ident() {
     if (token->kind != TK_IDENT)
-        error_tok(token, "演算子ではありません");
+        error_tok(token, "識別子ではありません");
     char *s = str_n_dup(token->str, token->len);
     token = token->next;
     return s;
@@ -202,7 +202,22 @@ Token *tokenize() {
             continue;
         }
 
-        // 整数値　リテラル
+        // 文字列リテラル
+        if (*p == '"') {
+            char *q = p++;
+            while (*p && *p != '"')
+                p++;
+            if (!*p)
+                error_at(q, "文字列リテラルが閉じられていません");
+            p++;
+
+            cur = new_token(TK_STR, cur, q, p - q);
+            cur->contents = str_n_dup(q + 1, p - q - 2);
+            cur->cont_len = p - q - 1;
+            continue;
+        }
+
+        // 整数値リテラル
         if (isdigit(*p)) {
             cur = new_token(TK_NUM, cur, p, 0);
             char *q = p;

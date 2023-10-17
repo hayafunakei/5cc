@@ -76,6 +76,13 @@ Var *push_var(char *name, Type *ty, bool is_local) {
     return var;
 }
 
+char *new_label() {
+    static int cnt = 0;
+    char buf[20];
+    sprintf(buf, ".L.data.%d", cnt++);
+    return str_n_dup(buf, 20);
+}
+
 Program *program();
 Function *function();
 Type *basetype();
@@ -444,6 +451,7 @@ Node *func_args() {
 // primary = "(" expr ")" 
 //            | ident func-args? 
 //            | "sieof" unary
+//            | str
 //            | num
 Node *primary() {
     Token *tok;
@@ -472,6 +480,17 @@ Node *primary() {
         if (!var)
             error_tok(tok, "未定義の変数");
        
+        return new_var(var, tok);
+    }
+
+    tok = token;
+    if (tok->kind == TK_STR) {
+        token = token->next;
+
+        Type *ty = array_of(char_type(), tok->cont_len);
+        Var *var = push_var(new_label(), ty, false);
+        var->contents = tok->contents;
+        var->cont_len = tok->cont_len;
         return new_var(var, tok);
     }
 
