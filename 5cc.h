@@ -100,6 +100,7 @@ typedef enum {
     ND_BLOCK,     // { ... }
     ND_FUNCALL,   // 関数call
     ND_EXPR_STMT, // 式文
+    ND_STMT_EXPR, // 式文
     ND_VAR,       // 変数
     ND_NUM,       // 整数
     ND_NULL,      // 空の文
@@ -123,7 +124,7 @@ struct Node {
     Node *init;    // for初期化
     Node *inc;     // forインクリメント条件
 
-    // Block
+    // Block or statement_expression
     Node *body;
 
     // 関数call

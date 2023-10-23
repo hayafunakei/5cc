@@ -433,6 +433,27 @@ Node *postfix() {
     return node;
 }
 
+// stmt-expr = "( "{" stmt stmt* "}" ")"
+// 
+// Statement expression is a GNU C extension.
+// https://gcc.gnu.org/onlinedocs/gcc-4.8.3/gcc/Statement-Exprs.html#Statement-Exprs
+Node *stmt_expr(Token *tok) {
+    Node *node = new_node(ND_STMT_EXPR, tok);
+    node->body = stmt();
+    Node *cur = node->body;
+
+    while (!consume("}")) {
+        cur->next = stmt();
+        cur = cur->next;
+    }
+    expect(")");
+
+    if (cur->kind != ND_EXPR_STMT)
+        error_tok(cur->tok, "voidを返すstmt_exprはサポートされていません。");
+    *cur = *cur->lhs;
+    return node;
+}
+
 // func-args = "(" (assign ("," assign)*)? ")"
 Node *func_args() {
     if (consume(")"))
@@ -448,7 +469,8 @@ Node *func_args() {
     return head;
 }
 
-// primary = "(" expr ")" 
+// primary =   "(" "{" stmt-expr-tail
+//            | "(" expr ")" 
 //            | ident func-args? 
 //            | "sieof" unary
 //            | str
@@ -457,7 +479,9 @@ Node *primary() {
     Token *tok;
 
     // 次のトークンが"("なら、"(" expr ")"となるはず
-    if (consume("(")) {
+    if (tok = consume("(")) {
+        if (consume("{"))
+            return stmt_expr(tok);
         Node *node = expr();
         expect(")");
         return node;
