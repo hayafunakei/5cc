@@ -4,6 +4,7 @@
 // トークナイザー
 //
 
+char *filename;
 char *user_input;
 Token *token;
 
@@ -18,9 +19,32 @@ void error(char *fmt, ...) {
 }
 
 // エラー個所を報告して終了する。
+// 前提:すべての行が必ず'\n'で終わっていること
+// 
+// foo.c:10: x = y + + 1;
+//                   ^ 式ではありません
 void verror_at(char *loc, char *fmt, va_list ap) {
-    int pos = loc - user_input;
-    fprintf(stderr, "%s\n", user_input);
+    // locを含む行の頭を取得する
+    char *line = loc;
+    while (user_input < line && line[-1] != '\n')
+        line--;    
+    
+    char *end = loc;
+    while (*end != '\n')
+        end++;
+    
+    // 行数を取得
+    int line_num = 1;
+    for (char *p = user_input; p < line; p++)
+        if (*p == '\n')
+            line_num++;
+    
+    // 当該行を表示
+    int indent = fprintf(stderr, "%s:%d: ", filename, line_num);
+    fprintf(stderr, "%.*s\n", (int)(end - line), line);
+
+    // エラーメッセージを表示
+    int pos = loc - line + indent;
     fprintf(stderr, "%*s", pos, " "); // pos個の空白を入力
     fprintf(stderr, "^ ");
     vfprintf(stderr, fmt, ap);
@@ -29,6 +53,7 @@ void verror_at(char *loc, char *fmt, va_list ap) {
 }
 
 // エラー箇所を報告して終了する。
+// 前提:すべての行が必ず'\n'で終わっていること
 void error_at(char *loc, char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);

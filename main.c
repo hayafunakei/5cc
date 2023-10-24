@@ -1,5 +1,25 @@
 #include "5cc.h"
 
+// 指定したファイルの内容を返す
+char *read_file(char *path) {
+    // ファイルを開いて読み込む
+    FILE *fp = fopen(path, "r");
+    if(!fp)
+        error("\"%s\"は開けませんでした: %s", path, strerror(errno));
+    
+    int filemax = 10 * 1024 * 1024;
+    char *buf = malloc(filemax);
+    int size = fread(buf, 1/*byte size*/, filemax - 2, fp);
+    if (!feof(fp))
+        error("%s: ファイルが大きすぎます");
+    
+    // ファイルが必ず"\n\0"で終わっているようにする
+    if (size == 0 || buf[size - 1] != '\n')
+        buf[size++] = '\n';
+    buf[size] = '\0';
+    return buf;
+}
+
 // alignで指定したサイズの倍数に切り上げて整列します
 int align_to(int n, int align) {
     // 例:n=90, align=8
@@ -15,7 +35,8 @@ int main(int argc, char **argv) {
     }
     
     // トークナイズしてパースする
-    user_input = argv[1];
+    filename = argv[1];
+    user_input = read_file(argv[1]);
     token = tokenize();
     Program *prog = program();
     add_type(prog);

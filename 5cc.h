@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <ctype.h>
+#include <errno.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -50,6 +51,7 @@ Token *tokenize();
 char *str_n_dup(const char *s, size_t n);
 
 // 入力プログラム
+extern char *filename;
 extern char *user_input;
 // 現在着目しているトークン
 extern Token *token;

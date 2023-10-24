@@ -14,7 +14,7 @@ assert() {
     expected="$1"
     input="$2"
     
-    ./5cc "$input" > tmp.s
+    ./5cc <(echo "$input") > tmp.s
     # -static スタティックリンク
     cc -static -o tmp tmp.s tmp2.o
     ./tmp
