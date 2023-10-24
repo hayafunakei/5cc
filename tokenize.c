@@ -245,6 +245,23 @@ Token *tokenize() {
             p++;
             continue;
         }
+        
+        // コメント行をスキップする
+        if (startswith(p, "//")) {
+            p += 2;
+            while (*p != '\n')
+                p++;
+            continue;
+        }
+
+        // ブロックコメントをスキップする
+        if (startswith(p, "/*")) {
+            char *q = strstr(p + 2, "*/");
+            if(!q)
+                error_at(p, "ブロックコメントが閉じられていません");
+            p = q + 2;
+            continue;
+        }
 
         // キーワード・複数文字の演算子
         char *kw = starts_with_reserved(p);
