@@ -8,7 +8,9 @@ OBJS=$(SRCS:.c=.o)
 $(OBJS): 5cc.h
 
 test: 5cc
-		./test.sh
+		./5cc tests > tmp.s
+		gcc -static -o tmp tmp.s
+		./tmp
 
 clean:
 		rm -f 5cc *.o *~ tmp*
