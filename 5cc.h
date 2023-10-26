@@ -8,6 +8,7 @@
 #include <string.h>
 
 typedef struct Type Type;
+typedef struct Member Member;
 
 //
 // tokenize.c
@@ -94,6 +95,7 @@ typedef enum {
     ND_ADDR,      // unary &
     ND_DEREF,     // unary *
     ND_ASSIGN,    // = assign:代入する
+    ND_MEMBER,    // . (構造体メンバーアクセス)
     ND_RETURN,    // "return"
     ND_IF,        // "if"
     ND_WHILE,     // "while"
@@ -102,7 +104,7 @@ typedef enum {
     ND_BLOCK,     // { ... }
     ND_FUNCALL,   // 関数call
     ND_EXPR_STMT, // 式文
-    ND_STMT_EXPR, // 式文
+    ND_STMT_EXPR, // 式文 GNU拡張 ({  })
     ND_VAR,       // 変数
     ND_NUM,       // 整数
     ND_NULL,      // 空の文
@@ -128,6 +130,10 @@ struct Node {
 
     // Block or statement_expression
     Node *body;
+
+    // 構造体メンバーアクセス
+    char *member_name;
+    Member *member;
 
     // 関数call
     char *funcname;
@@ -164,14 +170,24 @@ typedef enum {
     TY_CHAR,
     TY_INT, 
     TY_PTR, 
-    TY_ARRAY 
+    TY_ARRAY,
+    TY_STRUCT, 
 } TypeKind;
 
 // 型の性質を表す
 struct Type {
     TypeKind kind;   // 変数の型
-    Type *base;      // ポインタ型で使う　何のポインタ型か
-    int array_size; 
+    Type *base;      // ポインタ型(or 配列)で使う　何のポインタ型か
+    int array_size;  // 配列
+    Member *members; // struct構造体
+};
+
+// 構造体メンバー
+struct Member {
+    Member *next;
+    Type *ty;
+    char *name;
+    int offset;
 };
 
 Type *char_type();

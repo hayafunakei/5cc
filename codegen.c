@@ -28,6 +28,12 @@ void gen_addr(Node *node) {
     case ND_DEREF:
         gen(node->lhs);
         return;
+    case ND_MEMBER:
+        gen_addr(node->lhs);
+        printf("  pop rax\n");
+        printf("  add rax, %d\n", node->member->offset);
+        printf("  push rax\n");
+        return;
     }
 
     error_tok(node->tok, "変数ではありません");
@@ -74,6 +80,7 @@ void gen(Node *node) {
         printf("  add rsp, 8\n"); // RSPは1単位64bit(8バイト) 
         return;
     case ND_VAR:
+    case ND_MEMBER:
         gen_addr(node);
         if (node->ty->kind != TY_ARRAY)
             load(node->ty);

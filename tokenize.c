@@ -171,7 +171,8 @@ bool is_alnum(char c) {
 
 char *starts_with_reserved(char *p) {
         // キーワード
-        static char *kw[] = {"return", "if", "else", "while", "for", "int", "sizeof", "char"}; 
+        static char *kw[] = {"return", "if", "else", "while", "for", "int", 
+                             "sizeof", "char", "struct"}; 
         for (int i = 0; i < sizeof(kw) / sizeof(*kw); i++) {
             int len = strlen(kw[i]);
             if (startswith(p, kw[i]) && !is_alnum(p[len]))
@@ -273,7 +274,7 @@ Token *tokenize() {
         }
 
         // 一文字の記号
-        if (strchr("+-*/()<>;={},&[]", *p)) {
+        if (strchr("+-*/()<>;={},&[].", *p)) {
             cur = new_token(TK_RESERVED, cur, p, 1);
             p++;
             continue;
