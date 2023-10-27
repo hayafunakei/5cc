@@ -20,13 +20,6 @@ char *read_file(char *path) {
     return buf;
 }
 
-// alignで指定したサイズの倍数に切り上げて整列します
-int align_to(int n, int align) {
-    // 例:n=90, align=8
-    // (90 + 7)=97(0110 0001)で次にあるalignの倍数以上の数にする。
-    // NOT 7(1111 1000)のANDをとり、align以下のビットを0にするとalignの倍数となる→96
-    return (n + align -1) & ~(align - 1);
-}
 
 int main(int argc, char **argv) {
     if (argc != 2) {

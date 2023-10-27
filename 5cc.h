@@ -177,6 +177,7 @@ typedef enum {
 // 型の性質を表す
 struct Type {
     TypeKind kind;   // 変数の型
+    int align;       // アライメント
     Type *base;      // ポインタ型(or 配列)で使う　何のポインタ型か
     int array_size;  // 配列
     Member *members; // struct構造体
@@ -190,6 +191,7 @@ struct Member {
     int offset;
 };
 
+int align_to();
 Type *char_type();
 Type *int_type();
 Type *pointer_to(Type *base);

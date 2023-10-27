@@ -180,8 +180,12 @@ Type *struct_decl() {
     // 構造体内のオフセットをメンバに割り当てる
     int offset = 0;
     for (Member *mem = ty->members; mem; mem = mem->next) {
+        offset = align_to(offset, mem->ty->align); // offset位置調整
         mem->offset = offset;
         offset += size_of(mem->ty);
+
+        if (ty->align < mem->ty->align)
+            ty->align = mem->ty->align;
     }
 
     return ty;

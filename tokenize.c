@@ -53,7 +53,6 @@ void verror_at(char *loc, char *fmt, va_list ap) {
 }
 
 // エラー箇所を報告して終了する。
-// 前提:すべての行が必ず'\n'で終わっていること
 void error_at(char *loc, char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
