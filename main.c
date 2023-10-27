@@ -40,8 +40,10 @@ int main(int argc, char **argv) {
         int offset = 0;
         for (VarList *vl = fn->locals; vl; vl = vl->next) {
             Var *var = vl->var;
+            offset = align_to(offset, var->ty->align);
             offset += size_of(var->ty);
             var->offset = offset;
+            // RBPから見て後にした宣言→先にした宣言の順に並ぶ
         }
         fn->stack_size = align_to(offset, 8);
 
