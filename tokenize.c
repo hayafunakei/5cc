@@ -171,7 +171,7 @@ bool is_alnum(char c) {
 char *starts_with_reserved(char *p) {
         // キーワード
         static char *kw[] = {"return", "if", "else", "while", "for", "int", 
-                             "sizeof", "char", "struct"}; 
+                             "sizeof", "char", "struct", "typedef"}; 
         for (int i = 0; i < sizeof(kw) / sizeof(*kw); i++) {
             int len = strlen(kw[i]);
             if (startswith(p, kw[i]) && !is_alnum(p[len]))
