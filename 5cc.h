@@ -36,7 +36,6 @@ struct Token {
     char cont_len;  // 文字リテラルの長さ
 };
 
-
 void error(char *fmt, ...);
 void error_at(char *loc, char *fmt, ...);
 void error_tok(Token *tok, char *fmt, ...);

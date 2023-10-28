@@ -4,9 +4,19 @@
 // パーサー
 //
 
+// 構造体タグスコープ
+typedef struct TagScope TagScope;
+struct TagScope {
+    TagScope *next;
+    char *name;
+    Type *ty;
+};
+
 VarList *locals;
 VarList *globals;
+
 VarList *scope;
+TagScope *tag_scope;
 
 // 変数を名前で検索する。見つからなかった場合はNULLを返す。
 Var *find_var(Token *tok) {
@@ -15,6 +25,13 @@ Var *find_var(Token *tok) {
         if (strlen(var->name) == tok->len && !memcmp(tok->str, var->name, tok->len))
             return var;
     }
+    return NULL;
+}
+
+TagScope *find_tag(Token *tok) {
+    for (TagScope *sc = tag_scope; sc; sc = sc->next)
+        if (strlen(sc->name) == tok->len && !memcmp(tok->str, sc->name, tok->len))
+            return sc;
     return NULL;
 }
 
@@ -158,12 +175,31 @@ Type *read_type_suffix(Type *base) {
     return array_of(base, sz);
 }
 
-// struct-decl = "struct" "{" struct-member "}"
+void push_tag_scope(Token *tok, Type *ty) {
+    TagScope *sc = calloc(1, sizeof(TagScope));
+    sc->next = tag_scope;
+    sc->name = str_n_dup(tok->str, tok->len);
+    sc->ty = ty;
+    tag_scope = sc;
+}
+
+// struct-decl = "struct" ident
+//             | "struct" "{" struct-member "}"
 Type *struct_decl() {
-    // 構造体メンバー読み込み
     expect("struct");
+    
+    // タグがすでにある場合は読み込み
+    Token *tag = consume_ident();
+    if (tag && !peek("{")) {
+        TagScope *sc = find_tag(tag);
+        if (!sc)
+            error_tok(tag, "不明な構造体タイプ");
+        return sc->ty;
+    }
+
     expect("{");
 
+    // 構造体メンバー読み込み
     Member head;
     head.next = NULL;
     Member *cur = &head;
@@ -187,7 +223,10 @@ Type *struct_decl() {
         if (ty->align < mem->ty->align)
             ty->align = mem->ty->align;
     }
-
+    
+    // tag名があれば登録する
+    if (tag)
+        push_tag_scope(tag, ty);
     return ty;
 }
 
@@ -266,11 +305,15 @@ void global_var() {
 }
 
 // declaration = basetype ident ("[" num "]")* ("=" expr) ";"
+//             | basetype ";"
 Node *declaration() {
     Token *tok = token;
     Type *ty = basetype();
-    char *name = expect_ident();
+
+    if (consume(";"))
+        return new_node(ND_NULL, tok);
     
+    char *name = expect_ident();
     // 配列定義[]
     ty = read_type_suffix(ty); // 配列ならbaseの配列タイプになる。
     Var *var = push_var(name, ty, true);
@@ -355,12 +398,14 @@ Node *stmt() {
         head.next = NULL;
         Node *cur = &head;
         
-        VarList *sc = scope;
+        VarList *sc1 = scope;
+        TagScope *sc2 = tag_scope;
         while (!consume("}")) {
             cur->next = stmt(); // ブロック内の新しい一文
             cur = cur->next;
         }
-        scope = sc; // ブロックスコープの外側
+        scope = sc1; // ブロックスコープの外側
+        tag_scope = sc2;
 
         Node *node = new_node(ND_BLOCK, tok);
         node->body = head.next;
@@ -499,7 +544,9 @@ Node *postfix() {
 // Statement expression is a GNU C extension.
 // https://gcc.gnu.org/onlinedocs/gcc-4.8.3/gcc/Statement-Exprs.html#Statement-Exprs
 Node *stmt_expr(Token *tok) {
-    VarList *sc = scope;
+    VarList *sc1 = scope;
+    TagScope *sc2 = tag_scope;
+
     Node *node = new_node(ND_STMT_EXPR, tok);
     node->body = stmt();
     Node *cur = node->body;
@@ -510,7 +557,8 @@ Node *stmt_expr(Token *tok) {
     }
     expect(")");
 
-    scope = sc;
+    scope = sc1;
+    tag_scope = sc2;
 
     if (cur->kind != ND_EXPR_STMT)
         error_tok(cur->tok, "voidを返すstmt_exprはサポートされていません。");
