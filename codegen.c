@@ -5,6 +5,7 @@
 //
 
 char *argreg1[] = {"dil", "sil", "dl", "cl", "r8b", "r9b"};
+char *argreg4[] = {"edi", "esi", "edx", "ecx", "r8d", "r9d"};
 char *argreg8[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 
 int labelseq = 0; // ラベル連番
@@ -47,10 +48,16 @@ void gen_lval(Node *node) {
 
 void load(Type *ty) { // アドレスをpushしておく
     printf("  pop rax\n"); // 変数アドレスを取得する
-    if (size_of(ty) == 1)
+    
+    int sz = size_of(ty);
+    if (sz == 1) {
         printf("  movsx rax, byte ptr [rax]\n");
-    else
-        printf("  mov rax, [rax]\n"); // アドレスが指す箇所の数値を取り出す
+    } else if (sz == 4) {
+        printf("  movsxd rax, dword ptr [rax]\n");
+    } else {
+        printf("  mov rax, [rax]\n"); // 第二が[]…アドレスが指す箇所の数値を取り出す
+    }
+
     printf("  push rax\n");
 }
 
@@ -58,11 +65,17 @@ void store(Type *ty) {
     printf("  pop rdi\n");
     printf("  pop rax\n");
 
-    if (size_of(ty) == 1 )
+    int sz = size_of(ty);
+
+    if (sz == 1 ) {
         printf("  mov [rax], dil\n"); 
-    else
+    } else if (sz == 4) {
+        printf("  mov [rax], edi\n");
+    } else {
+        assert(sz == 8);
         printf("  mov [rax], rdi\n"); // raxのアドレス先に値をセットする
-    
+    }
+
     printf("  push rdi\n");
 }
 
@@ -268,7 +281,9 @@ void load_arg(Var *var, int idx) {
     int sz = size_of(var->ty);
     if (sz == 1) {
         printf("  mov [rbp-%d], %s\n", var->offset, argreg1[idx]);
-    } else {
+    } else if (sz == 4) { 
+        printf("  mov [rbp-%d], %s\n", var->offset, argreg4[idx]);
+    }else {
         assert(sz == 8);
         printf("  mov [rbp-%d], %s\n", var->offset, argreg8[idx]);
     }
@@ -312,4 +327,5 @@ void codegen(Program *prog) {
     emit_data(prog);
     emit_text(prog);
 }
-// rdi 第一引数 rsi, rdx, rcx
+// rdi 第一引数() rsi, rdx, rcx
+// edi 第一引数(32bit)

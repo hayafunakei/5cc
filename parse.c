@@ -182,6 +182,7 @@ Type *basetype() {
     else if (consume("struct"))
         ty = struct_decl();
     else
+        // typedef定義済み
         ty = find_var(consume_ident())->type_def;
     assert(ty);
      
