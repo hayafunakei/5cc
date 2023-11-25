@@ -173,6 +173,7 @@ typedef enum {
     TY_LONG,
     TY_ARRAY,
     TY_STRUCT, 
+    TY_FUNC,
 } TypeKind;
 
 // 型の性質を表す
@@ -182,6 +183,7 @@ struct Type {
     Type *base;      // ポインタ型(or 配列)で使う　何のポインタ型か
     int array_size;  // 配列
     Member *members; // struct構造体
+    Type *return_ty; // function
 };
 
 // 構造体メンバー
@@ -197,6 +199,7 @@ Type *char_type();
 Type *short_type();
 Type *int_type();
 Type *long_type();
+Type *func_type(Type *return_ty);
 Type *pointer_to(Type *base);
 Type *array_of(Type *base, int size);
 int size_of(Type *ty);

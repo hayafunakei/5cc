@@ -51,12 +51,19 @@ int sub_long(long a, long b, long c) {
     return a - b - c;
 }
 
+int *g1_ptr() {
+    return &g1;
+}
+
 int fib(int x) {
     if (x<=1)
         return 1;
     return fib(x-1) + fib(x-2);
 }
 
+char *retString_abcabc() {
+    return "abcabc";
+}
 
 int main() {
     assert(8, ({ int a=3; int z=5; a+z; }), "int a=3; int z=5; a+z;");
@@ -267,6 +274,10 @@ int main() {
     assert(3, ({ int *x[3]; int y; x[0]=&y; y=3; x[0][0]; }), " int *x[3]; int y; x[0]=&y; y=3; x[0][0]; " );
     //           [] int      　* [] int
     assert(4, ({ int x[3]; int (*y)[3]=x; y[0][0]=4; y[0][0]; }), " int x[3], int (*y)[3]=x; y[0][0]=4; y[0][0]; " );
+
+    assert(3, *g1_ptr(), "*g1_ptr()");
+    assert(5, ({ int *x=g1_ptr(); 2+*x;}), " int *x=g1_ptr(); 2+*x;");
+    assert(97, retString_abcabc()[0], "retString_abcabc()[0]");
 
     printf("OK\n");
     return 0;

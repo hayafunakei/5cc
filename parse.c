@@ -96,7 +96,7 @@ Var *push_var(char *name, Type *ty, bool is_local) {
     if (is_local) {
         vl->next = locals;
         locals = vl;
-    } else {
+    } else if (ty->kind != TY_FUNC) {
         vl->next = globals;
         globals = vl;
     }
@@ -195,7 +195,7 @@ Type *type_specifier() {
     return find_var(consume_ident())->type_def;
 }
 
-// https://www.sigbus.info/compilerbook#%E3%83%8D%E3%82%B9%E3%83%88%E3%81%97%E3%81%A6%E3%81%84%E3%82%8B%E5%9E%8B%E3%81%AE%E8%AA%AD%E3%81%BF%E6%96%B9
+// https://www.sigbus.info/compilerbook#type
 //                      ネストしている型
 // declarator = "*" ( "(" declarator ")" | ident) type-suffix
 Type *declarator(Type *ty, char **name) {
@@ -327,8 +327,12 @@ Function *function() {
     
     Type *ty = type_specifier();
     char *name = NULL;
-    declarator(ty, &name);
+    ty = declarator(ty, &name);
 
+    // スコープに関数型を追加する
+    push_var(name, func_type(ty), false);
+
+    // 関数オブジェクトの用意
     Function *fn = calloc(1, sizeof(Function));
     fn->name = name;
 
@@ -336,6 +340,7 @@ Function *function() {
     fn->params = read_func_params();
     expect("{");
 
+    // 関数の内容を読む
     Node head;
     head.next = NULL;
     Node *cur = &head;
@@ -686,6 +691,15 @@ Node *primary() {
             Node *node = new_node(ND_FUNCALL, tok);
             node->funcname = str_n_dup(tok->str, tok->len);
             node->args = func_args(); // 末尾はfunc_argsでチェック
+
+            VarScope *sc = find_var(tok);
+            if (sc) {
+                if (!sc->var || sc->var->ty->kind != TY_FUNC)
+                    error_tok(tok, "関数ではありません");
+                node->ty = sc->var->ty->return_ty;
+            } else {
+                node->ty = int_type();
+            }
             return node;
         }
         
