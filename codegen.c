@@ -68,6 +68,12 @@ void store(Type *ty) {
     printf("  pop rdi\n");
     printf("  pop rax\n");
 
+    if (ty->kind == TY_BOOL) {    // ZF(ゼロフラグ)･･･演算結果が0ならZFは1
+        printf("  cmp rdi, 0\n"); // false(0)か判定　0ならZFは1 それ以外ZFは0
+        printf("  setne dil\n");  // ZFが0ならdilに1をセットする　そうでなければ0をセット
+        printf("  movzb rdi, dil\n");
+    }
+
     int sz = size_of(ty);
 
     if (sz == 1 ) {
