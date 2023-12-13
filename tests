@@ -279,6 +279,8 @@ int main() {
     assert(5, ({ int *x=g1_ptr(); 2+*x;}), " int *x=g1_ptr(); 2+*x;");
     assert(97, retString_abcabc()[0], "retString_abcabc()[0]");
 
+    { void *x; }
+
     printf("OK\n");
     return 0;
 }

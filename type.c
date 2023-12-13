@@ -16,6 +16,10 @@ Type *new_type(TypeKind kind, int align) {
     return ty;
 }
 
+Type *void_type() {
+    return new_type(TY_VOID, 1);
+}
+
 Type *char_type() {
     return new_type(TY_CHAR, 1);
 }
@@ -52,6 +56,8 @@ Type *array_of(Type *base, int size) {
 }
 
 int size_of(Type *ty) {
+    assert(ty->kind != TY_VOID);
+
     switch (ty->kind) {
     case TY_CHAR:
         return 1;
@@ -151,8 +157,10 @@ void visit(Node *node) {
         return;
     case ND_DEREF: // *
         if (!node->lhs->ty->base) 
-            error_tok(node->tok, "無効なポインタ参照 ポインタ型ではありません");
+            error_tok(node->tok, "無効なポインタ参照外し ポインタ型ではありません");
         node->ty = node->lhs->ty->base;   // lhsのポインタ型を引き継ぐ 
+        if (node->ty->kind == TY_VOID)
+            error_tok(node->tok, "voidポインタ型を参照外ししようとしています");
         return;
     case ND_SIZEOF:
         node->kind = ND_NUM;
