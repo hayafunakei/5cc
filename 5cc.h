@@ -181,6 +181,7 @@ typedef enum {
 // 型の性質を表す
 struct Type {
     TypeKind kind;   // 変数の型
+    bool is_typedef; // typedef
     int align;       // アライメント
     Type *base;      // ポインタ型(or 配列)で使う　何のポインタ型か
     int array_size;  // 配列
