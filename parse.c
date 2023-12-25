@@ -64,7 +64,7 @@ Node *new_unary(NodeKind kind, Node *expr, Token *tok) {
     return node;
 }
 
-Node *new_node_num(int val, Token *tok) {
+Node *new_num(int val, Token *tok) {
     Node *node = new_node(ND_NUM, tok);
     node->val = val;
     return node;
@@ -125,7 +125,9 @@ Program *program();
 Function *function();
 Type *type_specifier();
 Type *declarator(Type *ty, char **name);
+Type *abstract_declarator(Type *ty);
 Type *type_suffix(Type *ty);
+Type *type_name();
 Type *struct_decl();
 Member *struct_member();
 void global_var();
@@ -289,6 +291,21 @@ Type *declarator(Type *ty, char **name) {
     return type_suffix(ty);
 }
 
+// abstract-declarator = "*"* ("(" abstract-declarator ")")? type-suffix
+Type *abstract_declarator(Type *ty) {
+    while (consume("*"))
+        ty = pointer_to(ty);
+    
+    if (consume("(")) {
+        Type *placeholder = calloc(1, sizeof(Type));
+        Type *new_ty = abstract_declarator(placeholder);
+        expect(")");
+        *placeholder = *type_suffix(ty);
+        return new_ty;
+    }
+    return type_suffix(ty);
+}
+
 // type-suffix = ("[" num "]" type-suffix)?
 Type *type_suffix(Type *ty) {
     if (!consume("["))
@@ -297,6 +314,13 @@ Type *type_suffix(Type *ty) {
     expect("]");
     ty = type_suffix(ty);
     return array_of(ty, sz);
+}
+
+// type-name = type-specifier abstract-declarator type-suffix
+Type *type_name() {
+    Type *ty = type_specifier();
+    ty = abstract_declarator(ty);
+    return type_suffix(ty);
 }
 
 void push_tag_scope(Token *tok, Type *ty) {
@@ -658,7 +682,7 @@ Node *unary() {
         return unary();
     if (tok = consume("-"))
         // 0と右ノードを引き算してマイナスにする。
-        return new_binary(ND_SUB, new_node_num(0, tok), unary(), tok);
+        return new_binary(ND_SUB, new_num(0, tok), unary(), tok);
     if (tok = consume("&"))
         return new_unary(ND_ADDR, unary(), tok);
     if (tok = consume("*"))
@@ -742,6 +766,7 @@ Node *func_args() {
 
 // primary =   "(" "{" stmt-expr-tail
 //            | "(" expr ")" 
+//            | "sizeof" "(" type-name ")"
 //            | ident func-args? 
 //            | "sieof" unary
 //            | str
@@ -758,8 +783,17 @@ Node *primary() {
         return node;
     }
 
-    if (tok = consume("sizeof"))
+    if (tok = consume("sizeof")) {
+        if (consume("(")) {
+            if (is_typename()) {
+                Type *ty = type_name();
+                expect(")");
+                return new_num(size_of(ty), tok);
+            }
+            token = tok->next;
+        }
         return new_unary(ND_SIZEOF, unary(), tok);
+    }
     
     // 変数または関数　識別子
     if (tok = consume_ident()) {
@@ -798,5 +832,5 @@ Node *primary() {
     }
 
     // そうでなければ数値のはず
-    return new_node_num(expect_number(), tok);
+    return new_num(expect_number(), tok);
 }
