@@ -106,6 +106,7 @@ typedef enum {
     ND_STMT_EXPR, // 式文 GNU拡張 ({  })
     ND_VAR,       // 変数
     ND_NUM,       // 整数
+    ND_CAST,      // 型キャスト
     ND_NULL,      // 空の文
 } NodeKind;
 
