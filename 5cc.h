@@ -28,7 +28,7 @@ typedef struct Token Token;
 struct Token {
     TokenKind kind; // トークンの型
     Token *next;    // 次の入力トークン
-    int val;        // kindがTK_NUMの場合、その数値
+    long val;        // kindがTK_NUMの場合、その数値
     char *str;      // トークン文字列
     int len;        // トークンの長さ
 
@@ -43,7 +43,7 @@ Token *peek(char *s);
 Token *consume(char *op);
 Token *consume_ident();
 void expect(char *op);
-int expect_number();
+long expect_number();
 char *expect_ident();
 bool at_eof();
 Token *new_token(TokenKind kind, Token *cur, char *str, int len);
@@ -139,7 +139,7 @@ struct Node {
     Node *args;
     
     Var *var;      // kindがND_VARの場合のみ使う 当該変数への参照
-    int val;       // KindがND_NUMの場合のみ使う
+    long val;      // KindがND_NUMの場合のみ使う
 };
 
 // 関数１単位 

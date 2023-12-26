@@ -123,10 +123,10 @@ void expect(char *s) {
 
 // 次のトークンが数値の場合、トークンを１つ読み進めてその数値を返す。
 // それ以外の場合にはエラーを報告する。
-int expect_number() {
+long expect_number() {
     if (token->kind != TK_NUM)
         error_tok(token, "ここで少なくとも数字となるべきです");
-    int val = token->val;
+    long val = token->val;
     token = token->next;
     return val;
 }
