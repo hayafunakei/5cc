@@ -65,7 +65,7 @@ char *retString_abcabc() {
     return "abcabc";
 }
 
-char char_fn() { return 257; }
+char char_fn(); 
 
 int main() {
     assert(8, ({ int a=3; int z=5; a+z; }), "int a=3; int z=5; a+z;");
