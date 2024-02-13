@@ -125,7 +125,7 @@ void expect(char *s) {
 // それ以外の場合にはエラーを報告する。
 long expect_number() {
     if (token->kind != TK_NUM)
-        error_tok(token, "ここで少なくとも数字となるべきです");
+        error_tok(token, "数字ではありません");
     long val = token->val;
     token = token->next;
     return val;
@@ -172,7 +172,7 @@ char *starts_with_reserved(char *p) {
         // キーワード
         static char *kw[] = {"return", "if", "else", "while", "for", "int", 
                              "sizeof", "char", "struct", "typedef","short",
-                             "long", "void", "_Bool"}; 
+                             "long", "void", "_Bool", "enum"}; 
         for (int i = 0; i < sizeof(kw) / sizeof(*kw); i++) {
             int len = strlen(kw[i]);
             if (startswith(p, kw[i]) && !is_alnum(p[len]))

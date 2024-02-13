@@ -174,6 +174,7 @@ typedef enum {
     TY_INT, 
     TY_PTR, 
     TY_LONG,
+    TY_ENUM,
     TY_ARRAY,
     TY_STRUCT, 
     TY_FUNC,
@@ -205,6 +206,7 @@ Type *char_type();
 Type *short_type();
 Type *int_type();
 Type *long_type();
+Type *enum_type();
 Type *func_type(Type *return_ty);
 Type *pointer_to(Type *base);
 Type *array_of(Type *base, int size);
