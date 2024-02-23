@@ -5,6 +5,7 @@
 //
 
 // ローカル変数・グローバル変数・typedefのスコープ
+// nextを辿ることで現在位置の「スコープ範囲にある」ローカル変数・グローバル変数・typedefにすべてアクセスできる。
 typedef struct VarScope VarScope;
 struct VarScope {
     VarScope *next;
@@ -51,6 +52,8 @@ Node *new_node(NodeKind kind, Token *tok){
     node->tok = tok;
     return node;   
 }
+
+// new_○○はその属性のNodeを作成して返す
 
 Node *new_binary(NodeKind kind, Node *lhs, Node *rhs, Token *tok) {
     Node *node = new_node(kind, tok);
@@ -102,8 +105,6 @@ Var *push_var(char *name, Type *ty, bool is_local) {
         vl->next = globals;
         globals = vl;
     }
-
-    push_scope(name)->var = var;
     return var;
 }
 
@@ -192,7 +193,7 @@ Program *program() {
 //              | "short" | "short" "int" | "int" "short"
 //              | "int"
 //              | "long" | "long" "int" | "int" "long"   
-// dypedefはtype-specifier(型指定子)のどこにでも出現することに注意
+// 「typedef」と「static」はtype-specifier(型指定子)のどこにでも出現することに注意
 Type *type_specifier() {
     if (!is_typename(token))
         error_tok(token, "typename expected");
@@ -212,12 +213,15 @@ Type *type_specifier() {
     Type *user_type = NULL;
 
     bool is_typedef = false;
+    bool is_static = false;
 
     for (;;) {
         // トークンを一つずつ読む
         Token *tok = token;
         if (consume("typedef")) {
             is_typedef = true;
+        } else if (consume("static")) {
+            is_static = true;
         } else if (consume("void")) {
             is_typedef += VOID;
         } else if (consume("_Bool")) {
@@ -281,6 +285,7 @@ Type *type_specifier() {
     }
 
     ty->is_typedef = is_typedef;
+    ty->is_static = is_static;
     return ty;
 }
 
@@ -457,8 +462,11 @@ VarList *read_func_single_param() {
     ty = declarator(ty, &name);
     ty = type_suffix(ty);
 
+    Var *var = push_var(name, ty, true);
+    push_scope(name)->var = var;
+
     VarList *vl = calloc(1, sizeof(VarList));
-    vl->var = push_var(name, ty, true);
+    vl->var = var;
     return vl;
 }
 
@@ -490,7 +498,8 @@ Function *function() {
     ty = declarator(ty, &name);
 
     // スコープに関数型を追加する
-    push_var(name, func_type(ty), false);
+    Var *var = push_var(name, func_type(ty), false);
+    push_scope(name)->var = var;
 
     // 関数オブジェクトの用意
     Function *fn = calloc(1, sizeof(Function));
@@ -525,7 +534,9 @@ void global_var() {
     ty = declarator(ty, &name);
     ty = type_suffix(ty);
     expect(";");
-    push_var(name, ty, false);
+
+    Var *var = push_var(name, ty, false);
+    push_scope(name)->var = var;
 }
 
 // declaration…宣言
@@ -552,12 +563,21 @@ Node *declaration() {
     if (ty->kind == TY_VOID)
         error_tok(tok, "void型で宣言された変数");
 
-    Var *var = push_var(name, ty, true);
+    // todo:static local変数はスコープ外からアクセスできないようにする。
+    //      現状、static local変数はグローバル変数と同じ扱いでvar_scopeリストに追加されるため、
+    //      宣言した関数の外側から識別子を指定するだけでアクセスできてしまう(find_var()で見つかる)。 
+    Var *var;
+    if (ty->is_static)
+        var = push_var(new_label(), ty, false);
+    else
+        var = push_var(name, ty, true);
+    push_scope(name)->var = var;
 
     if (consume(";"))
         return new_node(ND_NULL, tok);
     
     expect("=");
+
     Node *lhs = new_var(var, tok);
     Node *rhs = expr();
     expect(";");
@@ -568,7 +588,7 @@ Node *declaration() {
 bool is_typename() {
     return peek("void") || peek("_Bool") || peek("char") || peek("short") || 
            peek("int") || peek("long") || peek("enum") || peek("struct") ||
-           peek("typedef") || find_typedef(token);
+           peek("typedef") || peek("static") || find_typedef(token);
 }
 
 Node *read_expr_stmt() {
@@ -642,7 +662,7 @@ Node *stmt() {
             cur->next = stmt(); // ブロック内の新しい一文
             cur = cur->next;
         }
-        var_scope = sc1; // ブロックスコープの外側
+        var_scope = sc1; // ブロックスコープの外側 ここから連結リストが枝分かれする
         tag_scope = sc2;
 
         Node *node = new_node(ND_BLOCK, tok);
