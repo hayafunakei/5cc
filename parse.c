@@ -600,7 +600,7 @@ Node *read_expr_stmt() {
 // stmt = "return" expr ";" 
 //        | "if" "(" expr ")" stmt ("else" stmt)?
 //        | "while" "(" expr ")" stmt
-//        | "for" "(" expr? ";" expr? ";" expr? ")" stmt
+//        | "for" "(" (expr? ";" declaration) expr? ";" expr? ")" stmt
 //        | "{" stmt* "}"
 //        | declaration
 //        | expr ";"  
@@ -635,10 +635,19 @@ Node *stmt() {
     if (consume("for")) {
         Node *node = new_node(ND_FOR, tok);
         expect("(");
+ 
+        VarScope *sc1 = var_scope;
+        TagScope *sc2 = tag_scope;
+
         if (!consume(";")) {
-            node->init = read_expr_stmt();
-            expect(";");
+            if (is_typename()) {
+                node->init = declaration();
+            } else {
+                node->init = read_expr_stmt();
+                expect(";");
+            }
         } else { /* ";"の場合空文として次に移動する */ }
+
         if (!consume(";")) {
             node->cond = expr(); // 評価結果を残して判定に使うためexpr()_(read_ex~()ではなく)
             expect(";");
@@ -648,6 +657,9 @@ Node *stmt() {
             expect(")");
         } else { /* 空文 */ }
         node->then = stmt();
+
+        var_scope = sc1;
+        tag_scope = sc2;
         return node;
     }
 
