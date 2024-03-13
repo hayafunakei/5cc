@@ -21,13 +21,13 @@ int conflict( int (*board)[10], int row, int col) {
     for (int i = 0; i < row; i=i+1) {
         if (board[i][col])
             return 1;
-        int j = row - i; // 今の位置を始点にする。盤は正方形なので行の数だけ列を調べればいい
+        int j = row - i; // 斜めを調べるための列オフセット値 
         if ( 0 < col - j + 1)
             if (board[i][col - j]) // 左上
                 return 1;
-            if (col + j < 10)
-                if (board[i][col + j]) // 右上
-                    return 1;
+        if (col + j < 10)
+            if (board[i][col + j]) // 右上
+                return 1;
     }
     return 0;
 }
@@ -39,7 +39,7 @@ int solve(int (*board)[10], int row) {
         print_board(board);
         return 0;
     }
-    for (int i = 0; i< 10; i=i+1) {
+    for (int i = 0; i < 10; i=i+1) {
         if (conflict(board, row, i)) {
             /* 何もしないで次の列に行く */
         } else {
