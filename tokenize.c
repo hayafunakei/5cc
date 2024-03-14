@@ -236,7 +236,7 @@ Token *read_string_literal(Token *cur, char *start) {
 Token *read_char_literal(Token *cur, char *start) {
     char *p = start + 1;
     if (*p == '\0')
-        error_at(start, "charリテラルが閉じられていません");
+        error_at(start, "文字リテラルが閉じられていません");
     
     char c;
     if (*p == '\\') {
@@ -247,9 +247,10 @@ Token *read_char_literal(Token *cur, char *start) {
     }
 
     if (*p != '\'')
-        error_at(start, "charリテラルが長すぎます");
+        error_at(start, "文字リテラルが長すぎます");
     p++;
-
+    
+    // NUMトークンとして扱われる
     Token *tok = new_token(TK_NUM, cur, start, p - start);
     tok->val = c;
     return tok;

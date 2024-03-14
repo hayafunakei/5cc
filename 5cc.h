@@ -94,6 +94,7 @@ typedef enum {
     ND_ADDR,      // unary &
     ND_DEREF,     // unary *
     ND_ASSIGN,    // = assign:代入する
+    ND_COMMA,     // , (カンマ演算子)
     ND_MEMBER,    // . (構造体メンバーアクセス)
     ND_RETURN,    // "return"
     ND_IF,        // "if"
