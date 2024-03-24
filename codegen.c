@@ -15,6 +15,8 @@ char *funcname;
 void gen(Node *node);
 
 // 指定されたノードのアドレスをスタックにプッシュする
+// ┌スタック
+// [] → [アドレス]
 void gen_addr(Node *node) {
     switch (node->kind) {
     case ND_VAR: {
@@ -41,12 +43,18 @@ void gen_addr(Node *node) {
     error_tok(node->tok, "変数ではありません");
 }
 
+// 指定されたノードのlvalueのアドレスをプッシュする
+// ┌スタック
+// [] → [アドレス]
 void gen_lval(Node *node) {
     if (node->ty->kind == TY_ARRAY)
         error_tok(node->tok, "lvalueではありません");
     gen_addr(node);
 }
 
+// 値を取り出す
+// ┌スタック
+// [アドレス] → [値]
 void load(Type *ty) { // アドレスをpushしておく
     printf("  pop rax\n"); // 変数アドレスを取得する
     
@@ -64,6 +72,9 @@ void load(Type *ty) { // アドレスをpushしておく
     printf("  push rax\n");
 }
 
+// 値を保存する
+// ┌スタック
+// [アドレス,値] → [値]
 void store(Type *ty) {
     printf("  pop rdi\n");
     printf("  pop rax\n");
@@ -109,6 +120,24 @@ void truncate(Type *ty) {
     printf("  push rax\n");
 }
 
+// スタックトップの値をインクリメント
+// ┌スタック
+// [値] → [値+1]
+void inc(Type *ty) {
+    printf("  pop rax\n");
+    printf("  add rax, %d\n", ty->base ? size_of(ty->base) : 1);
+    printf("  push rax\n");
+}
+
+// スタックトップの値をデクリメント
+// ┌スタック
+// [値] → [値-1]
+void dec(Type *ty) {
+    printf("  pop rax\n");
+    printf("  sub rax, %d\n", ty->base ? size_of(ty->base) : 1);
+    printf("  push rax\n");
+}
+
 void gen(Node *node) {
     switch (node->kind) {
     case ND_NULL:
@@ -138,6 +167,36 @@ void gen(Node *node) {
         gen(node->rhs);
         store(node->ty);
         return;  
+    case ND_PRE_INC:              // []
+        gen_lval(node->lhs);      // → [変数アドレス]
+        printf("  push [rsp]\n"); // → [変数アドレス,変数アドレス] ↑と同じ変数アドレスをプッシュ[rsp]とすれば再計算は不要
+        load(node->ty);           // → [変数アドレス,値]
+        inc(node->ty);            // → [変数アドレス,値+1]
+        store(node->ty);          // → [値+1] 加算後の値が次の計算に渡される
+        return;
+    case ND_PRE_DEC:
+        gen_lval(node->lhs); 
+        printf("  push [rsp]\n");
+        load(node->ty);
+        dec(node->ty);
+        store(node->ty);
+        return;
+    case ND_POST_INC:             
+        gen_lval(node->lhs);      
+        printf("  push [rsp]\n");
+        load(node->ty);
+        inc(node->ty);
+        store(node->ty);
+        dec(node->ty); // 加算"前"の値が次の計算に渡される
+        return;
+    case ND_POST_DEC:
+        gen_lval(node->lhs);
+        printf("  push [rsp]\n");
+        load(node->ty);
+        dec(node->ty);
+        store(node->ty);
+        inc(node->ty);
+        return;
     case ND_COMMA:
         gen(node->lhs);
         gen(node->rhs);

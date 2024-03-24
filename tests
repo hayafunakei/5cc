@@ -372,6 +372,21 @@ int main() {
     assert(45, ({ int x=0; int j=0; for(int i=0; i<=5; i=i+1,j=j+2) x=x+i+j; x; }), "int x=0; int j=0; for(int i=0; i<=5; i=i+1,j=j+2) x=x+i+j; x;");
     assert(2, ({ sizeof((300,4294967297,(short)100)); }), "sizeof((300,4294967297,(short)100));");
 
+    assert(3, ({ int i=2; ++i; }), "int i=2; ++i");
+    assert(1, ({ int i=2; --i; }), "int i=2; --i");
+    assert(2, ({ int i=2; i++; }), "int i=2; i++");
+    assert(2, ({ int i=2; i--; }), "int i=2; i--");
+    assert(3, ({ int i=2; i++; i; }), "int i=2; i++; i;");
+    assert(1, ({ int i=2; i--; i; }), "int i=2; i--; i;");
+    assert(2, ({ int a[3]; a[0]=0; a[1]=2; a[2]=4; int *p=a+1; *p++; }), "int a[3]; a[0]=0; a[1]=2; a[2]=4; int *p=a+1; *p++;");
+    assert(3, ({ int a[3]; a[0]=0; a[1]=2; a[2]=4; int *p=a+1; ++*p; }), "int a[3]; a[0]=0; a[1]=2; a[2]=4; int *p=a+1; ++*p;");
+    assert(2, ({ int a[3]; a[0]=0; a[1]=2; a[2]=4; int *p=a+1; *p--; }), "int a[3]; a[0]=0; a[1]=2; a[2]=4; int *p=a+1; *p--;");
+    assert(1, ({ int a[3]; a[0]=0; a[1]=2; a[2]=4; int *p=a+1; --*p; }), "int a[3]; a[0]=0; a[1]=2; a[2]=4; int *p=a+1; --*p;");
+
+    assert(0, ({ int a[3]; a[0]=0; a[1]=2; a[2]=4; int *p=a+1; (*p++)--; a[0]; }), "int a[3]; a[0]=0; a[1]=2; a[2]=4; int *p=a+1; (*p++)--; a[0];");
+    assert(1, ({ int a[3]; a[0]=0; a[1]=2; a[2]=4; int *p=a+1; (*p++)--; a[1]; }), "int a[3]; a[0]=0; a[1]=2; a[2]=4; int *p=a+1; (*p++)--; a[1];");
+    assert(4, ({ int a[3]; a[0]=0; a[1]=2; a[2]=4; int *p=a+1; (*p++)--; a[2]; }), "int a[3]; a[0]=0; a[1]=2; a[2]=4; int *p=a+1; (*p++)--; a[2];");
+    assert(4, ({ int a[3]; a[0]=0; a[1]=2; a[2]=4; int *p=a+1; (*p++)--; *p; }), "int a[3]; a[0]=0; a[1]=2; a[2]=4; int *p=a+1; (*p++)--; *p;");
     printf("OK\n");
     return 0;
 }

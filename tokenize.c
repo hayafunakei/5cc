@@ -180,7 +180,7 @@ char *starts_with_reserved(char *p) {
         }
 
         // 複数文字の演算子
-        static char *ops[] = {"==", "!=", "<=", ">=", "->"};
+        static char *ops[] = {"==", "!=", "<=", ">=", "->", "++","--"};
 
         for (int i = 0; i < sizeof(ops) / sizeof(*ops); i++) 
             if (startswith(p, ops[i]))

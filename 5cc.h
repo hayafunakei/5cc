@@ -94,7 +94,11 @@ typedef enum {
     ND_ADDR,      // unary &
     ND_DEREF,     // unary *
     ND_ASSIGN,    // = assign:代入する
-    ND_COMMA,     // , (カンマ演算子)
+    ND_PRE_INC,   // pre ++
+    ND_PRE_DEC,   // pre --
+    ND_POST_INC,  // post ++
+    ND_POST_DEC,  // post --
+    ND_COMMA,     // , (コンマ演算子)
     ND_MEMBER,    // . (構造体メンバーアクセス)
     ND_RETURN,    // "return"
     ND_IF,        // "if"
@@ -187,7 +191,7 @@ struct Type {
     bool is_typedef; // typedef
     bool is_static;  // static
     int align;       // アライメント
-    Type *base;      // ポインタ型(or 配列)で使う　何のポインタ型か
+    Type *base;      // ポインタ型で使う　何のポインタ型か
     int array_size;  // 配列
     Member *members; // struct構造体
     Type *return_ty; // function
