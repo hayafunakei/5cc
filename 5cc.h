@@ -98,6 +98,10 @@ typedef enum {
     ND_PRE_DEC,   // pre --
     ND_POST_INC,  // post ++
     ND_POST_DEC,  // post --
+    ND_A_ADD,     // +=
+    ND_A_SUB,     // -=
+    ND_A_MUL,     // *=
+    ND_A_DIV,     // /=
     ND_COMMA,     // , (コンマ演算子)
     ND_MEMBER,    // . (構造体メンバーアクセス)
     ND_RETURN,    // "return"
