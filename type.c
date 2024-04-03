@@ -125,6 +125,7 @@ void visit(Node *node) {
     case ND_NE:
     case ND_LT:
     case ND_LE:
+    case ND_NOT:
         node->ty = int_type();
         return;
     case ND_NUM:
@@ -143,12 +144,12 @@ void visit(Node *node) {
             node->rhs = tmp;
         }
         if (node->rhs->ty->base)
-            error_tok(node->tok, "無効なポインタ演算子 アドレス同士の加算は禁止です"); 
+            error_tok(node->tok, "無効なポインタ演算 アドレス同士の加算は禁止です"); 
         node->ty = node->lhs->ty;
         return;
     case ND_SUB:
         if (node->rhs->ty->base)
-            error_tok(node->tok, "無効なポインタ演算子 アドレスで減算することは禁止です。右辺はarithmetic typeである必要があります。");
+            error_tok(node->tok, "無効なポインタ演算 アドレスで減算することは禁止です。右辺はarithmetic typeである必要があります。");
         node->ty = node->lhs->ty;
         return;
     case ND_ASSIGN:

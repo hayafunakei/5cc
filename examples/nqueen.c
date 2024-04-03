@@ -40,9 +40,7 @@ int solve(int (*board)[10], int row) {
         return 0;
     }
     for (int i = 0; i < 10; i++) {
-        if (conflict(board, row, i)) {
-            /* 何もしないで次の列に行く */
-        } else {
+        if (!conflict(board, row, i)) {
             board[row][i] = 1;
             solve(board, row + 1); // 最後の行まで　再帰的に探索する
             board[row][i] = 0; // この列の探索は終わったので、Qをクリアして次の列に移る

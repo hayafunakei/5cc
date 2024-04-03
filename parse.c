@@ -802,7 +802,7 @@ Node *cast() {
     return unary();
 }
 
-// unary = ("+" | "-" | "&" | "*")? cast 
+// unary = ("+" | "-" | "&" | "*" | "!")? cast 
 //       | ("++" | "--") unary
 //       | postfix 
 Node *unary() {
@@ -816,6 +816,8 @@ Node *unary() {
         return new_unary(ND_ADDR, cast(), tok);
     if (tok = consume("*"))
         return new_unary(ND_DEREF, cast(), tok);
+    if (tok = consume("!"))
+        return new_unary(ND_NOT, cast(), tok);
     if (tok = consume("++"))
         return new_unary(ND_PRE_INC, unary(), tok);
     if (tok = consume("--"))

@@ -245,12 +245,20 @@ void gen(Node *node) {
         if (node->ty->kind != TY_ARRAY)
             load(node->ty); // lhsの結果をアドレスとして読み込む
         return;
+    case ND_NOT:
+        gen(node->lhs);
+        printf("  pop rax\n");
+        printf("  cmp rax, 0\n");    // raxと0を比較 rax(0)→ZFが1, rax(0以外)→ZFが0
+        printf("  sete al\n");       // ZFが1なら1, 0なら0をalにセット
+        printf("  movzb rax, al\n");  
+        printf("  push rax\n");
+        return;
     case ND_IF: {
         int seq = labelseq++;
         if (node->els) { // elseあり
             gen(node->cond); // 実行時スタックに計算結果が残るはず
             printf("  pop rax\n");
-            printf("  cmp rax, 0\n"); // cmp 0(false)か判定 ZFにセット 同一:1　それ以外:0 
+            printf("  cmp rax, 0\n"); // cmp 0(false)か判定 結果はZFを見る 同一:1　それ以外:0 
             printf("  je  .Lelse%d\n", seq); // (ZF == 1)なら
             gen(node->then);
             printf("  jmp .Lend%d\n", seq);
