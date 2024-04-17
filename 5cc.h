@@ -94,6 +94,7 @@ typedef enum {
     ND_ADDR,      // unary &
     ND_DEREF,     // unary *
     ND_NOT,       // !
+    ND_BITNOT,    // ~
     ND_ASSIGN,    // = assign:代入する
     ND_PRE_INC,   // pre ++
     ND_PRE_DEC,   // pre --
