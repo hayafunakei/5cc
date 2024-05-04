@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
         for (VarList *vl = fn->locals; vl; vl = vl->next) {
             Var *var = vl->var;
             offset = align_to(offset, var->ty->align); // タイプに合わせて開始位置を調整する
-            offset += size_of(var->ty);
+            offset += size_of(var->ty, var->tok);
             var->offset = offset;
             // RBPから見て後にした宣言→先にした宣言の順に並ぶ
         }

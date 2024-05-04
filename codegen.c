@@ -58,7 +58,7 @@ void gen_lval(Node *node) {
 void load(Type *ty) { // アドレスをpushしておく
     printf("  pop rax\n"); // 変数アドレスを取得する
     
-    int sz = size_of(ty);
+    int sz = size_of(ty, NULL);
     if (sz == 1) {
         printf("  movsx rax, byte ptr [rax]\n");
     } else if (sz == 2) {
@@ -85,7 +85,7 @@ void store(Type *ty) {
         printf("  movzb rdi, dil\n");
     }
 
-    int sz = size_of(ty);
+    int sz = size_of(ty, NULL);
 
     if (sz == 1 ) {
         printf("  mov [rax], dil\n"); 
@@ -109,7 +109,7 @@ void truncate(Type *ty) {
         printf("  setne al\n");
     }
 
-    int sz = size_of(ty);
+    int sz = size_of(ty, NULL);
     if (sz == 1) {
         printf("  movsx rax, al\n");
     } else if (sz == 2) {
@@ -123,18 +123,20 @@ void truncate(Type *ty) {
 // スタックトップの値をインクリメント
 // ┌スタック
 // [値] → [値+1]
-void inc(Type *ty) {
+void inc(Node *node) {
+    int sz = node->ty->base ? size_of(node->ty->base, node->tok) : 1;
     printf("  pop rax\n");
-    printf("  add rax, %d\n", ty->base ? size_of(ty->base) : 1);
+    printf("  add rax, %d\n", sz);
     printf("  push rax\n");
 }
 
 // スタックトップの値をデクリメント
 // ┌スタック
 // [値] → [値-1]
-void dec(Type *ty) {
+void dec(Node *node) {
+    int sz = node->ty->base ? size_of(node->ty->base, node->tok) : 1;
     printf("  pop rax\n");
-    printf("  sub rax, %d\n", ty->base ? size_of(ty->base) : 1);
+    printf("  sub rax, %d\n", sz);
     printf("  push rax\n");
 }
 
@@ -171,31 +173,31 @@ void gen(Node *node) {
         gen_lval(node->lhs);      // → [変数アドレス]
         printf("  push [rsp]\n"); // → [変数アドレス,変数アドレス] ↑と同じ変数アドレスをプッシュ[rsp]とすれば再計算は不要
         load(node->ty);           // → [変数アドレス,値]
-        inc(node->ty);            // → [変数アドレス,値+1]
+        inc(node);            // → [変数アドレス,値+1]
         store(node->ty);          // → [値+1] 加算後の値が次の計算に渡される
         return;
     case ND_PRE_DEC:
         gen_lval(node->lhs); 
         printf("  push [rsp]\n");
         load(node->ty);
-        dec(node->ty);
+        dec(node);
         store(node->ty);
         return;
     case ND_POST_INC:             
         gen_lval(node->lhs);      
         printf("  push [rsp]\n");
         load(node->ty);
-        inc(node->ty);
+        inc(node);
         store(node->ty);
-        dec(node->ty); // 加算"前"の値が次の計算に渡される
+        dec(node); // 加算"前"の値が次の計算に渡される
         return;
     case ND_POST_DEC:
         gen_lval(node->lhs);
         printf("  push [rsp]\n");
         load(node->ty);
-        dec(node->ty);
+        dec(node);
         store(node->ty);
-        inc(node->ty);
+        inc(node);
         return;
     case ND_A_ADD:
     case ND_A_SUB:
@@ -211,12 +213,12 @@ void gen(Node *node) {
         switch (node->kind) {
         case ND_A_ADD:
             if (node->ty->base)
-                printf("  imul rdi, %d\n", size_of(node->ty->base));
+                printf("  imul rdi, %d\n", size_of(node->ty->base, node->tok));
             printf("  add rax, rdi\n");
             break;
         case ND_A_SUB:
             if (node->ty->base)
-                printf("  imul rdi, %d\n", size_of(node->ty->base));
+                printf("  imul rdi, %d\n", size_of(node->ty->base, node->tok));
             printf("  sub rax, rdi\n");
             break;
         case ND_A_MUL:
@@ -407,12 +409,12 @@ void gen(Node *node) {
     switch (node->kind) {
     case ND_ADD:
         if (node->ty->base)
-            printf("  imul rdi, %d\n", size_of(node->ty->base));
+            printf("  imul rdi, %d\n", size_of(node->ty->base, node->tok));
         printf("  add rax, rdi\n");
         break;
     case ND_SUB:
         if (node->ty->base)
-            printf("  imul rdi, %d\n", size_of(node->ty->base));
+            printf("  imul rdi, %d\n", size_of(node->ty->base, node->tok));
         printf("  sub rax, rdi\n");
         break;
     case ND_MUL:
@@ -464,7 +466,7 @@ void emit_data(Program *prog) {
         printf("%s:\n", var->name);
 
         if (!var->contents) {
-            printf("  .zero %d\n", size_of(var->ty)); // サイズ数バイト宣言し、0で埋める
+            printf("  .zero %d\n", size_of(var->ty, var->tok)); // サイズ数バイト宣言し、0で埋める
             continue;
         }
 
@@ -474,7 +476,7 @@ void emit_data(Program *prog) {
 }
 
 void load_arg(Var *var, int idx) {
-    int sz = size_of(var->ty);
+    int sz = size_of(var->ty, var->tok);
     if (sz == 1) {
         printf("  mov [rbp-%d], %s\n", var->offset, argreg1[idx]);
     } else if (sz == 2) {

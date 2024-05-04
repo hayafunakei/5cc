@@ -24,11 +24,28 @@ struct TagScope {
     Type *ty;
 };
 
+typedef struct {
+    VarScope *var_scope;
+    TagScope *tag_scope;
+} Scope;
+
 VarList *locals;
 VarList *globals;
 
 VarScope *var_scope;
 TagScope *tag_scope;
+
+Scope *enter_scope() {
+    Scope *sc = calloc(1, sizeof(Scope));
+    sc->var_scope = var_scope;
+    sc->tag_scope = tag_scope;
+    return sc;
+}
+
+void leave_scope(Scope *sc) {
+    var_scope = sc->var_scope;
+    tag_scope = sc->tag_scope;
+}
 
 // 変数・typedefを名前で検索する。
 VarScope *find_var(Token *tok) {
@@ -89,11 +106,12 @@ VarScope *push_scope(char *name) {
     return sc;
 }
 
-Var *push_var(char *name, Type *ty, bool is_local) {
+Var *push_var(char *name, Type *ty, bool is_local, Token *tok) {
     Var *var = calloc(1, sizeof(Var));
     var->name = name;
     var->ty = ty;
     var->is_local = is_local;
+    var->tok = tok;
     
     VarList *vl = calloc(1, sizeof(VarList));
     vl->var = var;
@@ -328,14 +346,23 @@ Type *abstract_declarator(Type *ty) {
     return type_suffix(ty);
 }
 
-// type-suffix = ("[" num "]" type-suffix)?
+// type-suffix = ("[" num? "]" type-suffix)?
 Type *type_suffix(Type *ty) {
     if (!consume("["))
         return ty;
-    int sz = expect_number();
-    expect("]");
+
+    int sz = 0;
+    bool is_incomplete = true;
+    if (!consume("]")) {
+        sz = expect_number();
+        is_incomplete = false;
+        expect("]");
+    } else { /* [] 不完全な配列 */ }
+
     ty = type_suffix(ty);
-    return array_of(ty, sz);
+    ty = array_of(ty, sz);
+    ty->is_incomplete = is_incomplete;
+    return ty;
 }
 
 // type-name = type-specifier abstract-declarator type-suffix
@@ -389,7 +416,7 @@ Type *struct_decl() {
     for (Member *mem = ty->members; mem; mem = mem->next) {
         offset = align_to(offset, mem->ty->align); // offset位置調整
         mem->offset = offset;
-        offset += size_of(mem->ty);
+        offset += size_of(mem->ty, mem->tok);
 
         if (ty->align < mem->ty->align)
             ty->align = mem->ty->align;
@@ -450,6 +477,7 @@ Type *enum_specifier() {
 // struct-member = type-specifier declarator type-suffix ";"
 Member *struct_member() {
     Type *ty = type_specifier();
+    Token *tok = token;
     char *name = NULL;
     ty = declarator(ty, &name);
     ty = type_suffix(ty);
@@ -458,16 +486,18 @@ Member *struct_member() {
     Member *mem = calloc(1, sizeof(Member));
     mem->name = name;
     mem->ty = ty;
+    mem->tok = tok;
     return mem;
 }
 
 VarList *read_func_single_param() {
     Type *ty = type_specifier();
     char *name = NULL;
+    Token *tok = token;
     ty = declarator(ty, &name);
     ty = type_suffix(ty);
 
-    Var *var = push_var(name, ty, true);
+    Var *var = push_var(name, ty, true, tok);
     push_scope(name)->var = var;
 
     VarList *vl = calloc(1, sizeof(VarList));
@@ -500,10 +530,11 @@ Function *function() {
     
     Type *ty = type_specifier();
     char *name = NULL;
+    Token *tok = token;
     ty = declarator(ty, &name);
 
     // スコープに関数型を追加する
-    Var *var = push_var(name, func_type(ty), false);
+    Var *var = push_var(name, func_type(ty), false, tok);
     push_scope(name)->var = var;
 
     // 関数オブジェクトの用意
@@ -536,11 +567,12 @@ Function *function() {
 void global_var() {
     Type *ty = type_specifier();
     char *name = NULL;
+    Token *tok = token;
     ty = declarator(ty, &name);
     ty = type_suffix(ty);
     expect(";");
 
-    Var *var = push_var(name, ty, false);
+    Var *var = push_var(name, ty, false, tok);
     push_scope(name)->var = var;
 }
 
@@ -548,12 +580,13 @@ void global_var() {
 // declaration = type-specifier declarator type-suffix  ("=" expr)? ";"
 //             | type-specifier ";"
 Node *declaration() {
-    Token *tok = token;
+    Token *tok;
     Type *ty = type_specifier();
 
-    if (consume(";"))
+    if (tok = consume(";"))
         return new_node(ND_NULL, tok);
     
+    tok = token;
     char *name = NULL;
     ty = declarator(ty, &name);
     ty = type_suffix(ty);
@@ -573,9 +606,9 @@ Node *declaration() {
     //      宣言した関数の外側から識別子を指定するだけでアクセスできてしまう(find_var()で見つかる)。 
     Var *var;
     if (ty->is_static)
-        var = push_var(new_label(), ty, false);
+        var = push_var(new_label(), ty, false, tok);
     else
-        var = push_var(name, ty, true);
+        var = push_var(name, ty, true, tok);
     push_scope(name)->var = var;
 
     if (consume(";"))
@@ -641,8 +674,7 @@ Node *stmt() {
         Node *node = new_node(ND_FOR, tok);
         expect("(");
  
-        VarScope *sc1 = var_scope;
-        TagScope *sc2 = tag_scope;
+        Scope *sc = enter_scope();
 
         if (!consume(";")) {
             if (is_typename()) {
@@ -663,8 +695,7 @@ Node *stmt() {
         } else { /* 空文 */ }
         node->then = stmt();
 
-        var_scope = sc1;
-        tag_scope = sc2;
+        leave_scope(sc); // ブロックスコープの外側 ここから連結リストが枝分かれする
         return node;
     }
 
@@ -673,15 +704,13 @@ Node *stmt() {
         head.next = NULL;
         Node *cur = &head;
         
-        VarScope *sc1 = var_scope;
-        TagScope *sc2 = tag_scope;
+        Scope *sc = enter_scope();
         while (!consume("}")) {
             cur->next = stmt(); // ブロック内の新しい一文
             cur = cur->next;
         }
-        var_scope = sc1; // ブロックスコープの外側 ここから連結リストが枝分かれする
-        tag_scope = sc2;
-
+        
+        leave_scope(sc); // ブロックスコープの外側 ここから連結リストが枝分かれする        
         Node *node = new_node(ND_BLOCK, tok);
         node->body = head.next;
         return node;
@@ -985,7 +1014,7 @@ Node *primary() {
             if (is_typename()) {
                 Type *ty = type_name();
                 expect(")");
-                return new_num(size_of(ty), tok);
+                return new_num(size_of(ty, tok), tok);
             }
             token = tok->next;
         }
@@ -1026,7 +1055,7 @@ Node *primary() {
         token = token->next;
 
         Type *ty = array_of(char_type(), tok->cont_len);
-        Var *var = push_var(new_label(), ty, false);
+        Var *var = push_var(new_label(), ty, false, NULL);
         var->contents = tok->contents;
         var->cont_len = tok->cont_len;
         return new_var(var, tok);

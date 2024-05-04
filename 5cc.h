@@ -65,6 +65,7 @@ typedef struct Var Var;
 struct Var {
     char *name;    // 変数の名前
     Type *ty;      // 型
+    Token *tok;    // エラーメッセージで使用
     bool is_local; // ローカルかグローバル
     
     // ローカル変数
@@ -198,20 +199,22 @@ typedef enum {
 
 // 型の性質を表す
 struct Type {
-    TypeKind kind;   // 変数の型
-    bool is_typedef; // typedef
-    bool is_static;  // static
-    int align;       // アライメント
-    Type *base;      // ポインタ型で使う　何のポインタ型か
-    int array_size;  // 配列
-    Member *members; // struct構造体
-    Type *return_ty; // function
+    TypeKind kind;      // 変数の型
+    bool is_typedef;    // typedef
+    bool is_static;     // static
+    bool is_incomplete; // 不完全配列
+    int align;          // アライメント
+    Type *base;         // ポインタ
+    int array_size;     // 配列
+    Member *members;    // struct構造体
+    Type *return_ty;    // function
 };
 
 // 構造体メンバー
 struct Member {
     Member *next;
     Type *ty;
+    Token *tok; // エラーメッセージで使用
     char *name;
     int offset;
 };
@@ -227,7 +230,7 @@ Type *enum_type();
 Type *func_type(Type *return_ty);
 Type *pointer_to(Type *base);
 Type *array_of(Type *base, int size);
-int size_of(Type *ty);
+int size_of(Type *ty, Token *tok);
 
 void add_type(Program *prog);
 
