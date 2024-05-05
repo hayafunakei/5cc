@@ -497,6 +497,11 @@ VarList *read_func_single_param() {
     ty = declarator(ty, &name);
     ty = type_suffix(ty);
 
+    // 引数内の記述に限り「Tの配列」は「Tへのポインタ」に変換されます。
+    // 例えば *argv[]は**argvに変換されます。
+    if (ty->kind == TY_ARRAY) 
+        ty = pointer_to(ty->base);
+
     Var *var = push_var(name, ty, true, tok);
     push_scope(name)->var = var;
 

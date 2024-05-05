@@ -79,6 +79,10 @@ int count2() {
     return cnt;
 }
 
+int param_decay(int x[]) { return x[0]; }
+
+int param_decay2(int x[]) { return sizeof(x); }
+
 int main() {
     assert(8, ({ int a=3; int z=5; a+z; }), "int a=3; int z=5; a+z;");
     
@@ -428,6 +432,9 @@ int main() {
     assert(1, 1&&5, "1&&5");
 
     assert(1, 1&&0||1, "1&&0||1");
+
+    assert(3, ({ int x[2]; x[0]=3; param_decay(x); }), "int x[2]; x[0]=3; param_decay(x);");
+    assert(8, ({ int x[5]; param_decay2(x);}), "int x[5]; param_decary2(x);");
 
     printf("OK\n");
     return 0;
