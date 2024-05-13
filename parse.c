@@ -10,6 +10,7 @@ typedef struct VarScope VarScope;
 struct VarScope {
     VarScope *next;
     char *name;
+    int depth;
     Var *var;
     Type *type_def;
     Type *enum_ty;
@@ -21,6 +22,7 @@ typedef struct TagScope TagScope;
 struct TagScope {
     TagScope *next;
     char *name;
+    int depth;
     Type *ty;
 };
 
@@ -31,6 +33,7 @@ typedef struct {
 
 VarList *locals;
 VarList *globals;
+int scope_depth;
 
 VarScope *var_scope;
 TagScope *tag_scope;
@@ -39,12 +42,14 @@ Scope *enter_scope() {
     Scope *sc = calloc(1, sizeof(Scope));
     sc->var_scope = var_scope;
     sc->tag_scope = tag_scope;
+    ++scope_depth;
     return sc;
 }
 
 void leave_scope(Scope *sc) {
     var_scope = sc->var_scope;
     tag_scope = sc->tag_scope;
+    --scope_depth;
 }
 
 // 変数・typedefを名前で検索する。
@@ -102,6 +107,7 @@ VarScope *push_scope(char *name) {
     VarScope *sc = calloc(1, sizeof(VarScope));
     sc->name = name;
     sc->next = var_scope;
+    sc->depth = scope_depth;
     var_scope = sc;
     return sc;
 }
@@ -376,26 +382,51 @@ void push_tag_scope(Token *tok, Type *ty) {
     TagScope *sc = calloc(1, sizeof(TagScope));
     sc->next = tag_scope;
     sc->name = str_n_dup(tok->str, tok->len);
+    sc->depth = scope_depth;
     sc->ty = ty;
     tag_scope = sc;
 }
 
-// struct-decl = "struct" ident
-//             | "struct" "{" struct-member "}"
+// struct-decl =  "struct" ident? ("{" struct-member "}")?
 Type *struct_decl() {
-    // タグがすでにある場合は読み込み
+    // 構造体タグを読み込む
     expect("struct");
     Token *tag = consume_ident();
     if (tag && !peek("{")) {
         TagScope *sc = find_tag(tag);
-        if (!sc)
-            error_tok(tag, "不明な構造体タイプ");
+        
+        if (!sc) {
+            Type *ty = struct_type();
+            push_tag_scope(tag, ty);
+            return ty;
+        }
+
         if (sc->ty->kind != TY_STRUCT)
             error_tok(tag, "構造体タグではありません");
         return sc->ty;
     }
 
-    expect("{");
+    // "struct *foo"　この書き方も有効。
+    // fooを不完全な構造体型へのポインタとして定義する。
+    if (!consume("{"))
+        return struct_type();
+    
+    TagScope *sc = find_tag(tag);
+    Type *ty;
+
+    if (sc && sc->depth == scope_depth) {
+        if (sc->ty->kind != TY_STRUCT)
+            error_tok(tag, "構造体タグではありません");
+        // 同じブロックスコープに同じタグ名の構造体型が既にある場合、再定義となる。
+        ty = sc->ty;
+
+    } else {
+        // 構造体を早期に不完全型として登録することで、　
+        // "struct T { struct T *next;}"のような再帰構造体を記述できるようになる。
+        ty = struct_type();
+        if (tag)
+            push_tag_scope(tag, ty);
+    }
 
     // 構造体メンバー読み込み
     Member head;
@@ -407,8 +438,6 @@ Type *struct_decl() {
         cur = cur->next;
     }
 
-    Type *ty = calloc(1, sizeof(Type));
-    ty->kind = TY_STRUCT;
     ty->members = head.next;
 
     // 構造体内のオフセットをメンバに割り当てる
@@ -422,9 +451,8 @@ Type *struct_decl() {
             ty->align = mem->ty->align;
     }
     
-    // tag名があれば登録する
-    if (tag)
-        push_tag_scope(tag, ty);
+    // メンバー定義済み
+    ty->is_incomplete = false;
     return ty;
 }
 
