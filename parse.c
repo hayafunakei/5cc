@@ -674,6 +674,7 @@ Node *read_expr_stmt() {
 //        | "for" "(" (expr? ";" declaration) expr? ";" expr? ")" stmt
 //        | "{" stmt* "}"
 //        | "break" ";"
+//        | "continue" ;
 //        | declaration
 //        | expr ";"  
 Node *stmt() {     
@@ -753,6 +754,11 @@ Node *stmt() {
     if (tok = consume("break")) {
         expect(";");
         return new_node(ND_BREAK, tok);
+    }
+
+    if (tok = consume("continue")) {
+        expect(";");
+        return new_node(ND_CONTINUE, tok);
     }
 
     if (is_typename())
