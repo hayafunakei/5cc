@@ -383,6 +383,13 @@ void gen(Node *node) {
             error_tok(node->tok, "ループ内に無いcontinue");
         printf("  jmp .L.continue.%d\n", contseq);
         return;
+    case ND_GOTO:
+        printf("  jmp .L.label.%s.%s\n", funcname, node->label_name);
+        return;
+    case ND_LABEL:
+        printf(".L.label.%s.%s:\n", funcname, node->label_name);
+        gen(node->lhs);
+        return;
     case ND_FUNCALL: {
         int nargs = 0;
         for (Node *arg = node->args; arg; arg = arg->next) {
