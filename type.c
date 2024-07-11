@@ -163,7 +163,7 @@ void visit(Node *node) {
         return;
     case ND_SUB:
         if (node->rhs->ty->base)
-            error_tok(node->tok, "無効なポインタ演算 アドレスで減算することは禁止です。右辺はarithmetic typeである必要があります。");
+            error_tok(node->tok, "無効なポインタ演算 アドレスで減算することは禁止です");
         node->ty = node->lhs->ty;
         return;
     case ND_ASSIGN:
