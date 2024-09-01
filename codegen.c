@@ -171,6 +171,19 @@ void gen(Node *node) {
         gen(node->rhs);
         store(node->ty);
         return;  
+    case ND_TERNARY: {
+        int seq = labelseq++;
+        gen(node->cond);
+        printf("  pop rax\n");
+        printf("  cmp rax, 0\n");
+        printf("  je  .Lelse%d\n", seq);
+        gen(node->then);
+        printf("  jmp .Lend%d\n",  seq);
+        printf(".Lelse%d:\n", seq);
+        gen(node->els);
+        printf(".Lend%d:\n", seq);
+        return;
+    }
     case ND_PRE_INC:              // []
         gen_lval(node->lhs);      // → [変数アドレス]
         printf("  push [rsp]\n"); // → [変数アドレス,変数アドレス] ↑と同じ変数アドレスをプッシュ[rsp]とすれば再計算は不要

@@ -104,6 +104,7 @@ typedef enum {
     ND_LOGAND,    // &&
     ND_LOGOR,     // ||
     ND_ASSIGN,    // = assign:代入する
+    ND_TERNARY,   // ?:
     ND_PRE_INC,   // pre ++
     ND_PRE_DEC,   // pre --
     ND_POST_INC,  // post ++
